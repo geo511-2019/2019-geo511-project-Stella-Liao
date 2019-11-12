@@ -1,11 +1,12 @@
 ---
-title: "I have the best titles"
-author: Your name here
-subtitle: Subtitle here if desired
+title: "Larceny, Assault and Harassment Prediction in Manhattan, NYC"
+author: Stella Liao
 ---
 
 # Introduction
-My really awesome and complete introduction will go here.  
+Crime is a social issue, like a disease, which tends to spread as spatial clusters. We are always seeking for a way to minimize and prevent the occurrance of crime. Imagine if we could predict where the probability of crime occurring, our police could deploy the law enforcement to the potentially dangerous areas, which is more efficient. Usually, we may assume occurance of crime as random and researchers used behavioral and social methods to study it. However, with the development of data analysis and techonology, we could use more quantitative ways to analyze it. 
+
+So, in this final project, I will use the crime data from 2015-2017 in Manhattan, New York City to build classification models to classify the top three crime types occurred in this study area, which are larcey, assault and harassment. And the main factors input as features in the models are "when" and "where", to be specific, "when" refers to time and day of week, and where refers to land use. 
 
 # Materials and methods
 
