@@ -1,86 +1,152 @@
 ---
-title: "Larceny, Assault and Harassment Prediction in Manhattan, NYC"
-author: Stella Liao
+title: "Crime Prediction in Manhattan, NYC"
+author: "Stella Liao"
+subtitle: Visualization and Classification for Larceny, Assault and Harassment
+output: html_document
 ---
 
 # Introduction
-Crime is a social issue, like a disease, which tends to spread as spatial clusters. We are always seeking for a way to minimize and prevent the occurrance of crime. Imagine if we could predict where the probability of crime occurring, our police could deploy the law enforcement to the potentially dangerous areas, which is more efficient. Usually, we may assume occurance of crime as random and researchers used behavioral and social methods to study it. However, with the development of data analysis and techonology, we could use more quantitative ways to analyze it. 
+Crime is a social issue, like a disease, which tends to spread as spatial clusters. We are always seeking for a way to minimize and prevent the occurrance of crime. Imagine if we could predict where the probability of crime occurring, our police could deploy the law enforcement to the potentially dangerous areas, which is more efficient. Usually, we may assume occurance of crime as random and researchers used behavioral and social methods to study it. However, with the development of data analysis and techonology, we could use more quantitative ways to analyze it.
 
-So, in this final project, I will use the crime data from 2015-2017 in Manhattan, New York City to build classification models to classify the top three crime types occurred in this study area, which are larcey, assault and harassment. And the main factors input as features in the models are "when" and "where", to be specific, "when" refers to time and day of week, and where refers to land use. 
+For example, there is one program named PredPol, which is conducted by researchers from the University of California, Los Angeles (UCLA). With the help of the department of Los Angeles Police, they collected about 13 billion cases in 80 years and just used two variables, when and where to build models to predict where a crime could happen during each day, which is amazing and shows us the power of the environment influenting human's choice. And another paper written by Dr.Irina Matijosaitiene revealed the effect of land uses on crime type classification and prediction.
 
-# Materials and methods
+When using classification models, they are actually calculating the probability of when and where one crime type may happe. So in this project, I will focus on classification models. Of course, I'd like to use visulazation to give audience an intuitive feel about the relationship between the occurance of crime with when and where.
 
-Narrative and most code will go here.  Describe what you are doing and show how to do it (with code).
+# Materials and methods 
+I will use the crime data from 2015-2017 in Manhattan, New York City to build classification models to classify the top three crime types occurred in this study area, which are larceny, assault and harassment. And the main factors input as features in the models are "when" and "where", to be specific, "when" refers to time and day of week, and where refers to land use.
 
-You can do bullets like this:
+* Dataset Sources
+  -crime_MAN, a CSV file recording all crime occurance in Manhattan, NYC from 2015-2017, which is from <a href="https://data.cityofnewyork.us/Public-Safety/NYPD-Complaint-Data-Historic/qgea-i56i">NYPD Complaint Data</a>
+  -landuse_MAN, a shapfile containing land cover information of Manhattan, which is from <a href="https://www1.nyc.gov/site/planning/data-maps/open-data/dwn-pluto-mappluto.page">Primary Land Use Tax Lot Output(PLUTO)</a>
+* Visualization
+* Navie Bayes Classification Model
 
-* The first most important thing
-* The second most important thing
-* The third most important thing
-
-You can do numbers like this:
-
-1. The first most important thing
-2. The second most important thing
-3. The third most important thing
-
-See [http://rmarkdown.rstudio.com/](http://rmarkdown.rstudio.com/) for all the amazing things you can do.
-
-
-Here's my first code chunk.
-```{r}
-1+2
-```
-
-Load any required packages in a code chunk (you may need to install some packages):
-
-```{r, message=F, warning=F}
-library(tidyverse)
-library(leaflet)
-library(kableExtra)
-knitr::opts_chunk$set(cache=TRUE)  # cache the results for quick compiling
+## Load all required packages
+```{r load_packages, message=FALSE, warning=FALSE}
+library(dplyr)
+library(tidyr)
+library(lubridate)
+library(sp)
+library(sf)
+library(ggplot2)
+library(mapview)
+library(knitr)
+library(naivebayes)
+library(randomForest)
+library(ggpubr)
+knitr::opts_chunk$set(cache=TRUE,cache.lazy = FALSE)  # cache the results for quick compiling
 ```
 
 ## Download and clean all required data
-```{r}
-n=20
-data=data.frame(x=runif(n,-180,180),
-                y=runif(n,-60,60),
-                size = runif(n, 5, 20),
-                category = factor(
-                  sample(letters[1:5], n, replace = TRUE)
-                  ),
-                value = rnorm(n))
+
+### Tidy the crime dataset
+```{r crime_data_cleaned, message=FALSE, warning=FALSE, results='hide'}
+#read the raw data
+nypd <-read.csv(file="data/nypd.csv",stringsAsFactors = FALSE)
+
+#clean and tidy crime data
+#classify exact time into different time ranges
+time_interval<- data.frame(id = c("00","01","02","03","04","056","06","07","08","09","10","11","12",
+                                  "13","14","15","16","17","18","19","20","21","22","23","24"),
+                           interval = c("00-01","01-02","02-03","03-04","04-05","05-06","06-07","07-08",
+                                        "08-09","09-10","10-11","11-12","12-13","13-14","14-15","15-16",
+                                        "16-17","17-18","18-19","19-20","20-21","21-22","22-23","23-24","00-01"))
+
+#exract the relative information into crime_MAN dataframe
+crime_MAN <- nypd %>%
+  drop_na(Longitude)%>% # remove NA value
+  drop_na(Latitude)%>%
+  drop_na(CMPLNT_FR_DT)%>%
+  drop_na(CMPLNT_FR_TM)%>%
+  st_as_sf(coords=c("Longitude","Latitude"),crs = 4326)%>% # add georeferenced information
+  rename(# rename some column names to operate easily
+    CrimeID = CMPLNT_NUM,
+    CrimeType = OFNS_DESC,
+    Date = CMPLNT_FR_DT,
+    Time = CMPLNT_FR_TM)%>%
+  mutate(Date = mdy(Date), #change data column into DATE type
+         DayofWeek = wday(Date,label = TRUE,abbr = FALSE), #get the information about day of week
+         Time = str_sub(Time,1,2))%>% # get the hour of time
+  mutate(TimeInterval = time_interval$interval[match(.$Time, time_interval$id)])%>% #add a new column storing time ranges
+  filter(BORO_NM == "MANHATTAN"& #limit the study area
+         Date >= ymd(20150101) & #limit the study periods
+         Date <= ymd(20171231))%>%
+  select("CrimeType","DayofWeek","Time","TimeInterval") # select the relative columns
+
+#combine sub-classes of crime types into big classes
+crime_type <- c("LARCENY","ASSAULT","HARRASSMENT","THEFT","ADMINISTRATIVE CODE","HOMICIDE","INTOXICATED","LOITERING","OTHERSTATE LAW","OFFENSES")
+for(i in 1:length(crime_type))  {
+  crime_MAN$CrimeType[grep(crime_type[i],crime_MAN$CrimeType)] <- crime_type[i]
+}
+knitr::opts_chunk$set(cache = TRUE, warning = FALSE, 
+                      message = FALSE, cache.lazy = FALSE)
+
 ```
 
-```{r, results='asis'}
-data %>% 
-  slice(1:10) %>% #show only 1:n rows
-  kable(digits=2,align="c")%>% #make table and round to two digits
-  kable_styling(bootstrap_options = 
-                  c("striped", "hover", "condensed", "responsive")) #apply other formatting
+### Tidy the landuse dataset
+```{r landuse_data_clean, message=FALSE, warning=FALSE, results='hide'}
+#read the raw data
+mapluto <-st_read("data/mapluto/MapPluto.shp")
+#to add the name of each landuse type
+landuse_type <- data.frame(id=c(1:12),type = c("One & Two Family Buildings",
+                                               "Multi-Family Walk-Up Buildings",
+                                               "Multi-Family Elevator Buildings", 
+                                               "Mixed Residential & Commercial Buildings",
+                                               "Commercial & Office Buildings",
+                                               "Industrial & Manufacturing",
+                                               "Transportation & Utility",
+                                               "Public Facilities & Institutions",
+                                               "Open Space and Outdoor Recreation",
+                                               "Parking Facilities",
+                                               "Vacant Land",
+                                               "Unknown"))
+#exract the relative information I need
+landuse_MAN <- mapluto %>%
+  st_transform(st_crs(crime_MAN))%>% # make sure the same coordinate system
+  filter(Borough == "MN")%>% #limit the study area
+  select("Lot","LandUse")%>%
+  rename(LanduseID = LandUse)%>% #because the raw dataset just stored landuse id in "LandUse" Column
+  mutate(LanduseID = as.integer(LanduseID))%>%
+  replace_na(LanduseID = 12)%>% #replace NA value into 12-Unknown
+  mutate(Landuse = landuse_type$type[match(.$LanduseID, landuse_type$id)]) #add a new column storing land cover names
+knitr::opts_chunk$set(cache = TRUE, warning = FALSE, 
+                      message = FALSE, cache.lazy = FALSE)
 ```
 
-Add any additional processing steps here.
+## Analyze which are most frequently happen
+
+```{r top 10 crime types, message=FALSE, warning=FALSE, results='hide'}
+top10_Crime_MAN <- crime_MAN %>% 
+  group_by(CrimeType)%>%
+  summarize(amount = n())%>% #calculate the number of each crime type occurred totally 
+  mutate(percent = amount/sum(amount)*100)%>% #calculate the percent of each crime type
+  arrange(desc(amount))%>% #sort ranging from the highest number to lowest one
+  st_set_geometry(NULL) #no need to have geometry information
+```
+
+## Relationships between Top Three Crime Types with "When" Attributes
+```{r get top 3 crime types information, message=FALSE, warning=FALSE, results='hide'}
+#add landuse information into the crime dataset
+top3 <- c( "LARCENY","HARRASSMENT","ASSAULT")
+top3_Crime_Landuse_MAN <- crime_MAN %>%
+  filter(CrimeType %in% top3)%>%
+  st_join(landuse_MAN,join = st_nearest_feature,left = FALSE)
+
+#get the top 3 crime type dataframe seperately
+larceny <- top3_Crime_Landuse_MAN %>% filter(CrimeType == "LARCENY")
+harrasment <- top3_Crime_Landuse_MAN %>% filter(CrimeType == "HARRASSMENT")
+assault <- top3_Crime_Landuse_MAN %>% filter(CrimeType == "ASSAULT")
+
+```
 
 # Results
 
-Show tables, plots, etc. and describe them.
+## Table 1.1 shows top ten most committed crime types
 
-```{r, fig.width=6, fig.height=3, fig.cap="Map of completely random data"}
-m <- leaflet(data) %>% 
-  addTiles() %>% 
-  addCircleMarkers(~x, ~y, radius = ~size,color = ~as.factor(category)) %>% 
-  addPopups(~x[2], ~y[2], "Random popup")
-m  # a map with the default OSM tile layer
+```{r echo=FALSE}
+kable(top10_Crime_MAN[1:10,]) 
 ```
 
-
-```{r}
-data %>% 
-  ggplot(aes(x=x,y=y,col=category))+
-  geom_point()
-```
 
 # Conclusions
 
