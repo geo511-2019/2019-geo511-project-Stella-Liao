@@ -10,21 +10,28 @@ Crime is a social issue, like a disease, which tends to spread as spatial cluste
 
 For example, there is one program named PredPol, which is conducted by researchers from the University of California, Los Angeles (UCLA). With the help of the department of Los Angeles Police, they collected about 13 billion cases in 80 years and just used two variables, when and where to build models to predict where a crime could happen during each day, which is amazing and shows us the power of the environment influenting human's choice. And another paper written by Dr.Irina Matijosaitiene revealed the effect of land uses on crime type classification and prediction.
 
-When using classification models, they are actually calculating the probability of when and where one crime type may happe. So in this project, I will focus on classification models. Of course, I'd like to use visulazation to give audience an intuitive feel about the relationship between the occurance of crime with when and where.
+When using classification models, they are actually calculating the probability of when and where one crime type may happe. So in this project, I will focus on classification models. Of course, I'd like to use visulazation to give audience an intuitive feel about the relationship between the occurance of crime with time and location.
 
 # Materials and methods 
-I will use the crime data from 2015-2017 in Manhattan, New York City to build classification models to classify the top three crime types occurred in this study area, which are larceny, assault and harassment. And the main factors input as features in the models are "when" and "where", to be specific, "when" refers to time and day of week, and where refers to land use.
+I will use the crime data from 2015-2017 in Manhattan, New York City to build classification models to classify the top three crime types occurred in this study area, which are larceny, assault and harassment. And the main factors input as features in the models are time and location, to be specific, time refers to exact time and day of week, and location refers to land use.
 
 * Dataset Sources
-  -crime_MAN, a CSV file recording all crime occurance in Manhattan, NYC from 2015-2017, which is from <a href="https://data.cityofnewyork.us/Public-Safety/NYPD-Complaint-Data-Historic/qgea-i56i">NYPD Complaint Data</a>
-  -landuse_MAN, a shapfile containing land cover information of Manhattan, which is from <a href="https://www1.nyc.gov/site/planning/data-maps/open-data/dwn-pluto-mappluto.page">Primary Land Use Tax Lot Output(PLUTO)</a>
-* Visualization
-* Navie Bayes Classification Model
-
+  * <a href="https://data.cityofnewyork.us/Public-Safety/NYPD-Complaint-Data-Historic/qgea-i56i">NYPD Complaint Data</a>, a CSV file recording all crime occurance in New York City from 2006-2017
+  * <a href="https://www1.nyc.gov/site/planning/data-maps/open-data/dwn-pluto-mappluto.page">Primary Land Use Tax Lot Output(PLUTO)</a>, a shapfile containing land cover information of New York City
+* Relationship between crime types with time and location
+  * Time Series Analysis
+  * Effects of Land Uses on Crime Types
+* Classification Models
+  * Logistic Regression
+  * Random Forest
+  * Naïve Bayes Classification
+  
 ## Load all required packages
 ```{r load_packages, message=FALSE, warning=FALSE}
 library(dplyr)
+library(stringr)
 library(tidyr)
+library(readr)
 library(lubridate)
 library(sp)
 library(sf)
@@ -39,10 +46,17 @@ knitr::opts_chunk$set(cache=TRUE,cache.lazy = FALSE)  # cache the results for qu
 
 ## Download and clean all required data
 
-### Tidy the crime dataset
+### Crime Dataset
+
+This code chunk is used to download and clean the crime data.
+
 ```{r crime_data_cleaned, message=FALSE, warning=FALSE, results='hide'}
 #read the raw data
-nypd <-read.csv(file="data/nypd.csv",stringsAsFactors = FALSE)
+#It may takes a long time to run due to the large size of the raw dataset
+crime_file = "nypd.csv"
+crime_url = "https://data.cityofnewyork.us/api/views/qgea-i56i/rows.csv?accessType=DOWNLOAD"
+download.file(crime_url,crime_file)
+nypd <-read.csv(crime_file,stringsAsFactors = FALSE)
 
 #clean and tidy crime data
 #classify exact time into different time ranges
@@ -66,7 +80,7 @@ crime_MAN <- nypd %>%
     Time = CMPLNT_FR_TM)%>%
   mutate(Date = mdy(Date), #change data column into DATE type
          DayofWeek = wday(Date,label = TRUE,abbr = FALSE), #get the information about day of week
-         Time = str_sub(Time,1,2))%>% # get the hour of time
+         Time = hour(hms(Time)))%>% # get the hour of time
   mutate(TimeInterval = time_interval$interval[match(.$Time, time_interval$id)])%>% #add a new column storing time ranges
   filter(BORO_NM == "MANHATTAN"& #limit the study area
          Date >= ymd(20150101) & #limit the study periods
@@ -83,10 +97,21 @@ knitr::opts_chunk$set(cache = TRUE, warning = FALSE,
 
 ```
 
-### Tidy the landuse dataset
+### Landuse Dataset
+
+This code chunk is used to download and clean the land use data.
+
 ```{r landuse_data_clean, message=FALSE, warning=FALSE, results='hide'}
+
+#please download and unzip the landuse dataset if you do not have
+landuse_url = "https://www1.nyc.gov/assets/planning/download/zip/data-maps/open-data/nyc_mappluto_19v1_shp.zip"
+landuse_file = "pluto.zip"
+download.file(landuse_url,destfile = landuse_file)
+unzip(landuse_file, exdir = "pluto")
+
 #read the raw data
-mapluto <-st_read("data/mapluto/MapPluto.shp")
+mapluto <-st_read("pluto/MapPLUTO.shp")
+
 #to add the name of each landuse type
 landuse_type <- data.frame(id=c(1:12),type = c("One & Two Family Buildings",
                                                "Multi-Family Walk-Up Buildings",
@@ -113,9 +138,11 @@ knitr::opts_chunk$set(cache = TRUE, warning = FALSE,
                       message = FALSE, cache.lazy = FALSE)
 ```
 
-## Analyze which are most frequently happen
+## Which Crime types are most frequently happen?
 
-```{r top 10 crime types, message=FALSE, warning=FALSE, results='hide'}
+This code chunk is used to get the answer, which is presented in Result part.
+
+```{r top_10_crime_types, message=FALSE, warning=FALSE, results='hide'}
 top10_Crime_MAN <- crime_MAN %>% 
   group_by(CrimeType)%>%
   summarize(amount = n())%>% #calculate the number of each crime type occurred totally 
@@ -124,12 +151,40 @@ top10_Crime_MAN <- crime_MAN %>%
   st_set_geometry(NULL) #no need to have geometry information
 ```
 
-## Relationships between Top Three Crime Types with "When" Attributes
-```{r get top 3 crime types information, message=FALSE, warning=FALSE, results='hide'}
+
+## Time Series Analysis 
+
+This code chunk is to analyze time preference of top 3 commited crime types and the graphes are presented in Result part.
+
+```{r top_3_crime_types, message=FALSE, warning=FALSE, results='hide'}
+top3 <- data.frame(id=c(1:3),type = c("LARCENY","HARRASSMENT","ASSAULT"))
+
+#get the numbers of cases happened of each crime type in different time ranges
+time_top3 <- crime_MAN %>%
+  filter(CrimeType %in% top3$type)%>%
+  group_by(TimeInterval,CrimeType)%>% 
+  summarize(amount=n())%>%
+  st_set_geometry(NULL)
+
+#get the numbers of cases happened of each crime type in different days of week
+dw_top3 <- crime_MAN %>%
+  filter(CrimeType %in% top3$type)%>%
+  drop_na(DayofWeek)%>%
+  group_by(DayofWeek,CrimeType)%>% 
+  summarize(amount=n())%>%
+  st_set_geometry(NULL)
+
+```
+
+## Effects of Land Uses on Crime Types
+
+Still Working on it...
+<br>Please skip this part and welcome to any suggestions. Thank you!!!
+
+```{r land_use_effect, message=FALSE, warning=FALSE, results='hide'}
 #add landuse information into the crime dataset
-top3 <- c( "LARCENY","HARRASSMENT","ASSAULT")
 top3_Crime_Landuse_MAN <- crime_MAN %>%
-  filter(CrimeType %in% top3)%>%
+  filter(CrimeType %in% top3$type)%>%
   st_join(landuse_MAN,join = st_nearest_feature,left = FALSE)
 
 #get the top 3 crime type dataframe seperately
@@ -139,14 +194,35 @@ assault <- top3_Crime_Landuse_MAN %>% filter(CrimeType == "ASSAULT")
 
 ```
 
+## Classification Models
+
+Still Working on it...
+<br>Please skip this part and welcome to any suggestions. Thank you!!!
+
 # Results
 
-## Table 1.1 shows top ten most committed crime types
-
+## Top ten most committed crime types
 ```{r echo=FALSE}
 kable(top10_Crime_MAN[1:10,]) 
 ```
 
+## The Preference on Time of Top Three Committed Crime Types
+```{r echo=FALSE}
+ggplot(time_top3,aes(x = TimeInterval, y= amount,group=1))+
+  geom_point(aes(color = CrimeType))+
+  geom_line(aes(color = CrimeType))+
+  facet_grid(~CrimeType)+
+  theme(legend.position = "none",axis.text.x = element_text(angle = 60, hjust = 1))
+```
+
+## The Preference on Day of Week of Top Three Committed Crime Types
+```{r echo=FALSE}
+ggplot(dw_top3,aes(x = DayofWeek, y= amount, group = 1))+
+  geom_point(aes(color = CrimeType))+
+  geom_line(aes(color = CrimeType))+
+  facet_wrap(~CrimeType)+
+  theme(legend.position = "none",axis.text.x = element_text(angle = 60, hjust = 1))
+```
 
 # Conclusions
 
