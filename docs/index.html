@@ -207,7 +207,7 @@ $(document).ready(function () {
 }
 
 .tabset-dropdown > .nav-tabs > li.active:before {
-  content: "î";
+  content: "";
   font-family: 'Glyphicons Halflings';
   display: inline-block;
   padding: 10px;
@@ -220,7 +220,7 @@ $(document).ready(function () {
 }
 
 .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
-  content: "î";
+  content: "";
   font-family: 'Glyphicons Halflings';
   display: inline-block;
   padding: 10px;
@@ -368,21 +368,36 @@ div.tocify {
 <div id="introduction" class="section level1">
 <h1>Introduction</h1>
 <p>Crime is a social issue, like a disease, which tends to spread as spatial clusters. We are always seeking for a way to minimize and prevent the occurrance of crime. Imagine if we could predict where the probability of crime occurring, our police could deploy the law enforcement to the potentially dangerous areas, which is more efficient. Usually, we may assume occurance of crime as random and researchers used behavioral and social methods to study it. However, with the development of data analysis and techonology, we could use more quantitative ways to analyze it.</p>
-<p>For example, there is one program named PredPol, which is conducted by researchers from the University of California, Los Angeles (UCLA). With the help of the department of Los Angeles Police, they collected about 13 billion cases in 80 years and just used two variables, when and where to build models to predict where a crime could happen during each day, which is amazing and shows us the power of the environment influenting humanâs choice. And another paper written by Dr.Irina Matijosaitiene revealed the effect of land uses on crime type classification and prediction.</p>
-<p>When using classification models, they are actually calculating the probability of when and where one crime type may happe. So in this project, I will focus on classification models. Of course, Iâd like to use visulazation to give audience an intuitive feel about the relationship between the occurance of crime with when and where.</p>
+<p>For example, there is one program named PredPol, which is conducted by researchers from the University of California, Los Angeles (UCLA). With the help of the department of Los Angeles Police, they collected about 13 billion cases in 80 years and just used two variables, when and where to build models to predict where a crime could happen during each day, which is amazing and shows us the power of the environment influenting human’s choice. And another paper written by Dr.Irina Matijosaitiene revealed the effect of land uses on crime type classification and prediction.</p>
+<p>When using classification models, they are actually calculating the probability of when and where one crime type may happe. So in this project, I will focus on classification models. Of course, I’d like to use visulazation to give audience an intuitive feel about the relationship between the occurance of crime with time and location.</p>
 </div>
 <div id="materials-and-methods" class="section level1">
 <h1>Materials and methods</h1>
-<p>I will use the crime data from 2015-2017 in Manhattan, New York City to build classification models to classify the top three crime types occurred in this study area, which are larceny, assault and harassment. And the main factors input as features in the models are âwhenâ and âwhereâ, to be specific, âwhenâ refers to time and day of week, and where refers to land use.</p>
+<p>I will use the crime data from 2015-2017 in Manhattan, New York City to build classification models to classify the top three crime types occurred in this study area, which are larceny, assault and harassment. And the main factors input as features in the models are time and location, to be specific, time refers to exact time and day of week, and location refers to land use.</p>
 <ul>
-<li>Dataset Sources -crime_MAN, a CSV file recording all crime occurance in Manhattan, NYC from 2015-2017, which is from <a href="https://data.cityofnewyork.us/Public-Safety/NYPD-Complaint-Data-Historic/qgea-i56i">NYPD Complaint Data</a> -landuse_MAN, a shapfile containing land cover information of Manhattan, which is from <a href="https://www1.nyc.gov/site/planning/data-maps/open-data/dwn-pluto-mappluto.page">Primary Land Use Tax Lot Output(PLUTO)</a></li>
-<li>Visualization</li>
-<li>Navie Bayes Classification Model</li>
+<li>Dataset Sources
+<ul>
+<li><a href="https://data.cityofnewyork.us/Public-Safety/NYPD-Complaint-Data-Historic/qgea-i56i">NYPD Complaint Data</a>, a CSV file recording all crime occurance in New York City from 2006-2017</li>
+<li><a href="https://www1.nyc.gov/site/planning/data-maps/open-data/dwn-pluto-mappluto.page">Primary Land Use Tax Lot Output(PLUTO)</a>, a shapfile containing land cover information of New York City</li>
+</ul></li>
+<li>Relationship between crime types with time and location
+<ul>
+<li>Time Series Analysis</li>
+<li>Effects of Land Uses on Crime Types</li>
+</ul></li>
+<li>Classification Models
+<ul>
+<li>Logistic Regression</li>
+<li>Random Forest</li>
+<li>Naïve Bayes Classification</li>
+</ul></li>
 </ul>
 <div id="load-all-required-packages" class="section level2">
 <h2>Load all required packages</h2>
 <pre class="r"><code>library(dplyr)
+library(stringr)
 library(tidyr)
+library(readr)
 library(lubridate)
 library(sp)
 library(sf)
@@ -396,10 +411,15 @@ knitr::opts_chunk$set(cache=TRUE,cache.lazy = FALSE)  # cache the results for qu
 </div>
 <div id="download-and-clean-all-required-data" class="section level2">
 <h2>Download and clean all required data</h2>
-<div id="tidy-the-crime-dataset" class="section level3">
-<h3>Tidy the crime dataset</h3>
+<div id="crime-dataset" class="section level3">
+<h3>Crime Dataset</h3>
+<p>This code chunk is used to download and clean the crime data.</p>
 <pre class="r"><code>#read the raw data
-nypd &lt;-read.csv(file=&quot;data/nypd.csv&quot;,stringsAsFactors = FALSE)
+#It may takes a long time to run due to the large size of the raw dataset
+crime_file = &quot;nypd.csv&quot;
+crime_url = &quot;https://data.cityofnewyork.us/api/views/qgea-i56i/rows.csv?accessType=DOWNLOAD&quot;
+download.file(crime_url,crime_file)
+nypd &lt;-read.csv(crime_file,stringsAsFactors = FALSE)
 
 #clean and tidy crime data
 #classify exact time into different time ranges
@@ -423,7 +443,7 @@ crime_MAN &lt;- nypd %&gt;%
     Time = CMPLNT_FR_TM)%&gt;%
   mutate(Date = mdy(Date), #change data column into DATE type
          DayofWeek = wday(Date,label = TRUE,abbr = FALSE), #get the information about day of week
-         Time = str_sub(Time,1,2))%&gt;% # get the hour of time
+         Time = hour(hms(Time)))%&gt;% # get the hour of time
   mutate(TimeInterval = time_interval$interval[match(.$Time, time_interval$id)])%&gt;% #add a new column storing time ranges
   filter(BORO_NM == &quot;MANHATTAN&quot;&amp; #limit the study area
          Date &gt;= ymd(20150101) &amp; #limit the study periods
@@ -438,10 +458,18 @@ for(i in 1:length(crime_type))  {
 knitr::opts_chunk$set(cache = TRUE, warning = FALSE, 
                       message = FALSE, cache.lazy = FALSE)</code></pre>
 </div>
-<div id="tidy-the-landuse-dataset" class="section level3">
-<h3>Tidy the landuse dataset</h3>
-<pre class="r"><code>#read the raw data
-mapluto &lt;-st_read(&quot;data/mapluto/MapPluto.shp&quot;)
+<div id="landuse-dataset" class="section level3">
+<h3>Landuse Dataset</h3>
+<p>This code chunk is used to download and clean the land use data.</p>
+<pre class="r"><code>#please download and unzip the landuse dataset if you do not have
+landuse_url = &quot;https://www1.nyc.gov/assets/planning/download/zip/data-maps/open-data/nyc_mappluto_19v1_shp.zip&quot;
+landuse_file = &quot;pluto.zip&quot;
+download.file(landuse_url,destfile = landuse_file)
+unzip(landuse_file, exdir = &quot;pluto&quot;)
+
+#read the raw data
+mapluto &lt;-st_read(&quot;pluto/MapPLUTO.shp&quot;)
+
 #to add the name of each landuse type
 landuse_type &lt;- data.frame(id=c(1:12),type = c(&quot;One &amp; Two Family Buildings&quot;,
                                                &quot;Multi-Family Walk-Up Buildings&quot;,
@@ -468,8 +496,9 @@ knitr::opts_chunk$set(cache = TRUE, warning = FALSE,
                       message = FALSE, cache.lazy = FALSE)</code></pre>
 </div>
 </div>
-<div id="analyze-which-are-most-frequently-happen" class="section level2">
-<h2>Analyze which are most frequently happen</h2>
+<div id="which-crime-types-are-most-frequently-happen" class="section level2">
+<h2>Which Crime types are most frequently happen?</h2>
+<p>This code chunk is used to get the answer, which is presented in Result part.</p>
 <pre class="r"><code>top10_Crime_MAN &lt;- crime_MAN %&gt;% 
   group_by(CrimeType)%&gt;%
   summarize(amount = n())%&gt;% #calculate the number of each crime type occurred totally 
@@ -477,12 +506,32 @@ knitr::opts_chunk$set(cache = TRUE, warning = FALSE,
   arrange(desc(amount))%&gt;% #sort ranging from the highest number to lowest one
   st_set_geometry(NULL) #no need to have geometry information</code></pre>
 </div>
-<div id="relationships-between-top-three-crime-types-with-when-attributes" class="section level2">
-<h2>Relationships between Top Three Crime Types with âWhenâ Attributes</h2>
+<div id="time-series-analysis" class="section level2">
+<h2>Time Series Analysis</h2>
+<p>This code chunk is to analyze time preference of top 3 commited crime types and the graphes are presented in Result part.</p>
+<pre class="r"><code>top3 &lt;- data.frame(id=c(1:3),type = c(&quot;LARCENY&quot;,&quot;HARRASSMENT&quot;,&quot;ASSAULT&quot;))
+
+#get the numbers of cases happened of each crime type in different time ranges
+time_top3 &lt;- crime_MAN %&gt;%
+  filter(CrimeType %in% top3$type)%&gt;%
+  group_by(TimeInterval,CrimeType)%&gt;% 
+  summarize(amount=n())%&gt;%
+  st_set_geometry(NULL)
+
+#get the numbers of cases happened of each crime type in different days of week
+dw_top3 &lt;- crime_MAN %&gt;%
+  filter(CrimeType %in% top3$type)%&gt;%
+  drop_na(DayofWeek)%&gt;%
+  group_by(DayofWeek,CrimeType)%&gt;% 
+  summarize(amount=n())%&gt;%
+  st_set_geometry(NULL)</code></pre>
+</div>
+<div id="effects-of-land-uses-on-crime-types" class="section level2">
+<h2>Effects of Land Uses on Crime Types</h2>
+<p>Still Working on it… <br>Please skip this part and welcome to any suggestions. Thank you!!!</p>
 <pre class="r"><code>#add landuse information into the crime dataset
-top3 &lt;- c( &quot;LARCENY&quot;,&quot;HARRASSMENT&quot;,&quot;ASSAULT&quot;)
 top3_Crime_Landuse_MAN &lt;- crime_MAN %&gt;%
-  filter(CrimeType %in% top3)%&gt;%
+  filter(CrimeType %in% top3$type)%&gt;%
   st_join(landuse_MAN,join = st_nearest_feature,left = FALSE)
 
 #get the top 3 crime type dataframe seperately
@@ -490,11 +539,15 @@ larceny &lt;- top3_Crime_Landuse_MAN %&gt;% filter(CrimeType == &quot;LARCENY&qu
 harrasment &lt;- top3_Crime_Landuse_MAN %&gt;% filter(CrimeType == &quot;HARRASSMENT&quot;)
 assault &lt;- top3_Crime_Landuse_MAN %&gt;% filter(CrimeType == &quot;ASSAULT&quot;)</code></pre>
 </div>
+<div id="classification-models" class="section level2">
+<h2>Classification Models</h2>
+<p>Still Working on it… <br>Please skip this part and welcome to any suggestions. Thank you!!!</p>
+</div>
 </div>
 <div id="results" class="section level1">
 <h1>Results</h1>
-<div id="table-1.1-shows-top-ten-most-committed-crime-types" class="section level2">
-<h2>Table 1.1 shows top ten most committed crime types</h2>
+<div id="top-ten-most-committed-crime-types" class="section level2">
+<h2>Top ten most committed crime types</h2>
 <table>
 <thead>
 <tr>
@@ -622,6 +675,14 @@ DANGEROUS WEAPONS
 </tr>
 </tbody>
 </table>
+</div>
+<div id="the-preference-on-time-of-top-three-committed-crime-types" class="section level2">
+<h2>The Preference on Time of Top Three Committed Crime Types</h2>
+<p><img src="index_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
+</div>
+<div id="the-preference-on-day-of-week-of-top-three-committed-crime-types" class="section level2">
+<h2>The Preference on Day of Week of Top Three Committed Crime Types</h2>
+<p><img src="index_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
 </div>
 </div>
 <div id="conclusions" class="section level1">
