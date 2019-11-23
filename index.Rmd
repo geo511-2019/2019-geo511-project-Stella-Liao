@@ -5,14 +5,14 @@ subtitle: Visualization and Classification for Larceny, Assault and Harassment
 output: html_document
 ---
 
-# Introduction
+# Introduction 
 Crime is a social issue, like a disease, which tends to spread as spatial clusters. We are always seeking for a way to minimize and prevent the occurrance of crime. Imagine if we could predict where the probability of crime occurring, our police could deploy the law enforcement to the potentially dangerous areas, which is more efficient. Usually, we may assume occurance of crime as random and researchers used behavioral and social methods to study it. However, with the development of data analysis and techonology, we could use more quantitative ways to analyze it.
 
 For example, there is one program named PredPol, which is conducted by researchers from the University of California, Los Angeles (UCLA). With the help of the department of Los Angeles Police, they collected about 13 billion cases in 80 years and just used two variables, when and where to build models to predict where a crime could happen during each day, which is amazing and shows us the power of the environment influenting human's choice. And another paper written by Dr.Irina Matijosaitiene revealed the effect of land uses on crime type classification and prediction.
 
 When using classification models, they are actually calculating the probability of when and where one crime type may happe. So in this project, I will focus on classification models. Of course, I'd like to use visulazation to give audience an intuitive feel about the relationship between the occurance of crime with time and location.
 
-# Materials and methods 
+# Materials and methods  
 I will use the crime data from 2015-2017 in Manhattan, New York City to build classification models to classify the top three crime types occurred in this study area, which are larceny, assault and harassment. And the main factors input as features in the models are time and location, to be specific, time refers to exact time and day of week, and location refers to land use.
 
 * Dataset Sources
@@ -201,12 +201,12 @@ Still Working on it...
 
 # Results
 
-## Top ten most committed crime types
+## Top ten most committed crime types 
 ```{r echo=FALSE}
 kable(top10_Crime_MAN[1:10,]) 
 ```
 
-## The Preference on Time of Top Three Committed Crime Types
+## The Preference on Time of Top Three Committed Crime Types 
 ```{r echo=FALSE}
 ggplot(time_top3,aes(x = TimeInterval, y= amount,group=1))+
   geom_point(aes(color = CrimeType))+
@@ -215,7 +215,7 @@ ggplot(time_top3,aes(x = TimeInterval, y= amount,group=1))+
   theme(legend.position = "none",axis.text.x = element_text(angle = 60, hjust = 1))
 ```
 
-## The Preference on Day of Week of Top Three Committed Crime Types
+## The Preference on Day of Week of Top Three Committed Crime Types 
 ```{r echo=FALSE}
 ggplot(dw_top3,aes(x = DayofWeek, y= amount, group = 1))+
   geom_point(aes(color = CrimeType))+
@@ -228,4 +228,4 @@ ggplot(dw_top3,aes(x = DayofWeek, y= amount, group = 1))+
 
 What have you learned?  Are there any broader implications?
 
-# References
+# References 
