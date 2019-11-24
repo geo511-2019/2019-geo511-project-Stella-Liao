@@ -60,6 +60,7 @@ nypd <-read.csv(crime_file,stringsAsFactors = FALSE)
 
 #clean and tidy crime data
 #classify exact time into different time ranges
+# It looks like you might have a typo here, the string goes from "04", "056", "06". I'm assuming you meant "05"?
 time_interval<- data.frame(id = c("00","01","02","03","04","056","06","07","08","09","10","11","12",
                                   "13","14","15","16","17","18","19","20","21","22","23","24"),
                            interval = c("00-01","01-02","02-03","03-04","04-05","05-06","06-07","07-08",
@@ -213,6 +214,8 @@ ggplot(time_top3,aes(x = TimeInterval, y= amount,group=1))+
   geom_line(aes(color = CrimeType))+
   facet_grid(~CrimeType)+
   theme(legend.position = "none",axis.text.x = element_text(angle = 60, hjust = 1))
+
+# It looks like you have an NA here that is capturing more than just one time interval, since the point is so much higher than the others. You might not be capturing any time between "00" and "10". I see you created them above as time_interval, but I'm not sure at which point they were dropped, I'm thinking it may have something to do with your second mutate call under crime_MAN, or if you intentionally didn't want to include these times, just make sure to remove the NA, or add a note explaining what it represents.
 ```
 
 ## The Preference on Day of Week of Top Three Committed Crime Types
@@ -222,6 +225,8 @@ ggplot(dw_top3,aes(x = DayofWeek, y= amount, group = 1))+
   geom_line(aes(color = CrimeType))+
   facet_wrap(~CrimeType)+
   theme(legend.position = "none",axis.text.x = element_text(angle = 60, hjust = 1))
+
+# This is a really nice and easy to read graph. I like that you facet wrapped and colored by crime type, to make it easier to distinguish (since otherwise Assault and Harrassment would likely overlap a little bit)
 ```
 
 # Conclusions
@@ -229,3 +234,5 @@ ggplot(dw_top3,aes(x = DayofWeek, y= amount, group = 1))+
 What have you learned?  Are there any broader implications?
 
 # References
+
+Don't forget references! You could add references to the PredPol program you mentiond in your intro as well as the paper by by Dr.Irina Matijosaitiene you referred to, just as a way to further emphasize your argument. 
