@@ -27,6 +27,7 @@
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
 <link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
 <script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<script src="site_libs/kePrint-0.0.1/kePrint.js"></script>
 
 <style type="text/css">code{white-space: pre;}</style>
 <style type="text/css">
@@ -359,7 +360,7 @@ div.tocify {
 
 
 <h1 class="title toc-ignore">Crime Prediction in Manhattan, NYC</h1>
-<h3 class="subtitle">Visualization and Classification for Larceny, Assault and Harassment</h3>
+<h3 class="subtitle">Random Forest Classification for Larceny, Harassment and Assault</h3>
 <h4 class="author">Stella Liao</h4>
 
 </div>
@@ -367,29 +368,31 @@ div.tocify {
 
 <div id="introduction" class="section level1">
 <h1>Introduction</h1>
-<p>Crime is a social issue, like a disease, which tends to spread as spatial clusters. We are always seeking for a way to minimize and prevent the occurrance of crime. Imagine if we could predict where the probability of crime occurring, our police could deploy the law enforcement to the potentially dangerous areas, which is more efficient. Usually, we may assume occurance of crime as random and researchers used behavioral and social methods to study it. However, with the development of data analysis and techonology, we could use more quantitative ways to analyze it.</p>
-<p>For example, there is one program named PredPol, which is conducted by researchers from the University of California, Los Angeles (UCLA). With the help of the department of Los Angeles Police, they collected about 13 billion cases in 80 years and just used two variables, when and where to build models to predict where a crime could happen during each day, which is amazing and shows us the power of the environment influenting human’s choice. And another paper written by Dr.Irina Matijosaitiene revealed the effect of land uses on crime type classification and prediction.</p>
-<p>When using classification models, they are actually calculating the probability of when and where one crime type may happe. So in this project, I will focus on classification models. Of course, I’d like to use visulazation to give audience an intuitive feel about the relationship between the occurance of crime with time and location.</p>
+<p>Crime is a social issue, like a disease, which tends to spread as spatial clusters. We are always seeking for ways to minimize and prevent the occurrence of crime. Imagine if we could predict the probability of where and when crime occurs, our police could deploy the law enforcement to potentially dangerous areas more efficiently. And usually, we may regard the occurrence of crime as random and use behavioral and social methods to study it. However, with the development of data analysis and technology, we could use some quantitative ways to analyze it.</p>
+<p>There is one program named PredPol, conducted by researchers from the University of California, Los Angeles (UCLA). They collected about 13 billion crime cases in 80 years and just used two variables, <code>when</code> and <code>where</code> to build models to predict where a crime could happen during each day, which is amazing and shows us the power of the environment influencing human’s choice. And the paper written by Dr. Irina Matijosaitiene revealed the effect of land uses on crime type classification and prediction.</p>
+<p>So, in this project, I’d like to use visualization at first to give an intuitive feel about the relationship between the occurrence of crime with <code>when</code> and <code>where</code>. And then I will build classification models for different crime types by using <code>when</code> and <code>where</code> as features input in my models.</p>
 </div>
 <div id="materials-and-methods" class="section level1">
 <h1>Materials and methods</h1>
-<p>I will use the crime data from 2015-2017 in Manhattan, New York City to build classification models to classify the top three crime types occurred in this study area, which are larceny, assault and harassment. And the main factors input as features in the models are time and location, to be specific, time refers to exact time and day of week, and location refers to land use.</p>
+<p>I will use the crime data from 2015-2017 in Manhattan, New York City to build classification models to classify the top three crime types occurred in this study area, which are larceny, harassment and assault. And the main factors input as features in the models are <code>time</code> and <code>location</code>, to be specific, <code>time</code> refers to exact time and day of week, and <code>location</code> refers to land use.</p>
 <ul>
 <li>Dataset Sources
 <ul>
 <li><a href="https://data.cityofnewyork.us/Public-Safety/NYPD-Complaint-Data-Historic/qgea-i56i">NYPD Complaint Data</a>, a CSV file recording all crime occurance in New York City from 2006-2017</li>
 <li><a href="https://www1.nyc.gov/site/planning/data-maps/open-data/dwn-pluto-mappluto.page">Primary Land Use Tax Lot Output(PLUTO)</a>, a shapfile containing land cover information of New York City</li>
 </ul></li>
-<li>Relationship between crime types with time and location
+<li>Relationships between crime types with time and location
 <ul>
 <li>Time Series Analysis</li>
 <li>Effects of Land Uses on Crime Types</li>
 </ul></li>
-<li>Classification Models
+<li>Random Forest Classification Model
 <ul>
-<li>Logistic Regression</li>
-<li>Random Forest</li>
-<li>Naïve Bayes Classification</li>
+<li>Training, validation and test data sets</li>
+<li>Feature Engineering</li>
+<li>Modeling</li>
+<li>Parameter Tuning</li>
+<li>Evaluation</li>
 </ul></li>
 </ul>
 <div id="load-all-required-packages" class="section level2">
@@ -402,18 +405,19 @@ library(lubridate)
 library(sp)
 library(sf)
 library(ggplot2)
-library(mapview)
 library(knitr)
-library(naivebayes)
-library(randomForest)
-library(ggpubr)
+library(kableExtra) #for table styling
+library(fastDummies) #get the dummy variables
+library(ranger)#random forest model
+library(randomForest) #random forest model
+
 knitr::opts_chunk$set(cache=TRUE,cache.lazy = FALSE)  # cache the results for quick compiling</code></pre>
 </div>
 <div id="download-and-clean-all-required-data" class="section level2">
 <h2>Download and clean all required data</h2>
 <div id="crime-dataset" class="section level3">
 <h3>Crime Dataset</h3>
-<p>This code chunk is used to download and clean the crime data.</p>
+<p>This code chunk is used to download and clean the crime data. <br>in <code>nypd</code> dataset, the granularity of crime classification into multiple crime sub-types is very small for this project, for example, <code>assault</code> is classified as <code>assault 1</code>, <code>assault 2</code>, <code>assault peace officer</code>, etc. As the very small granularity of crimes is out of the research goal, and it does not focus on the smaller sub-types of crime (for instance, <code>larceny in chain stores</code>, <code>larceny in boutiques</code>, <code>larceny in clothing stores</code>, etc.), the project has aggregated crime sub-types into larger groups, such as <code>larceny</code>, <code>harassment</code>, <code>assault</code>, <code>burglary</code>, etc., using only crime data for 2015–2017. In crime analysis, especially crime in terms of urban planning, data from the recent 2-3 years is the most commonly used.</p>
 <pre class="r"><code>#read the raw data
 #It may takes a long time to run due to the large size of the raw dataset
 crime_file = &quot;nypd.csv&quot;
@@ -423,55 +427,56 @@ nypd &lt;-read.csv(crime_file,stringsAsFactors = FALSE)
 
 #clean and tidy crime data
 #classify exact time into different time ranges
-time_interval&lt;- data.frame(id = c(&quot;00&quot;,&quot;01&quot;,&quot;02&quot;,&quot;03&quot;,&quot;04&quot;,&quot;056&quot;,&quot;06&quot;,&quot;07&quot;,&quot;08&quot;,&quot;09&quot;,&quot;10&quot;,&quot;11&quot;,&quot;12&quot;,
-                                  &quot;13&quot;,&quot;14&quot;,&quot;15&quot;,&quot;16&quot;,&quot;17&quot;,&quot;18&quot;,&quot;19&quot;,&quot;20&quot;,&quot;21&quot;,&quot;22&quot;,&quot;23&quot;,&quot;24&quot;),
-                           interval = c(&quot;00-01&quot;,&quot;01-02&quot;,&quot;02-03&quot;,&quot;03-04&quot;,&quot;04-05&quot;,&quot;05-06&quot;,&quot;06-07&quot;,&quot;07-08&quot;,
-                                        &quot;08-09&quot;,&quot;09-10&quot;,&quot;10-11&quot;,&quot;11-12&quot;,&quot;12-13&quot;,&quot;13-14&quot;,&quot;14-15&quot;,&quot;15-16&quot;,
-                                        &quot;16-17&quot;,&quot;17-18&quot;,&quot;18-19&quot;,&quot;19-20&quot;,&quot;20-21&quot;,&quot;21-22&quot;,&quot;22-23&quot;,&quot;23-24&quot;,&quot;00-01&quot;))
+time_range&lt;- data.frame(id=c(0:24),
+                        range= c(&quot;00-01&quot;,&quot;01-02&quot;,&quot;02-03&quot;,&quot;03-04&quot;,&quot;04-05&quot;,&quot;05-06&quot;,&quot;06-07&quot;,&quot;07-08&quot;,
+                                  &quot;08-09&quot;,&quot;09-10&quot;,&quot;10-11&quot;,&quot;11-12&quot;,&quot;12-13&quot;,&quot;13-14&quot;,&quot;14-15&quot;,&quot;15-16&quot;,
+                                  &quot;16-17&quot;,&quot;17-18&quot;,&quot;18-19&quot;,&quot;19-20&quot;,&quot;20-21&quot;,&quot;21-22&quot;,&quot;22-23&quot;,&quot;23-24&quot;,&quot;00-01&quot;))
+
 
 #exract the relative information into crime_MAN dataframe
 crime_MAN &lt;- nypd %&gt;%
-  drop_na(Longitude)%&gt;% # remove NA value
+  drop_na(Longitude)%&gt;% #remove NA value
   drop_na(Latitude)%&gt;%
   drop_na(CMPLNT_FR_DT)%&gt;%
   drop_na(CMPLNT_FR_TM)%&gt;%
-  st_as_sf(coords=c(&quot;Longitude&quot;,&quot;Latitude&quot;),crs = 4326)%&gt;% # add georeferenced information
-  rename(# rename some column names to operate easily
+  st_as_sf(coords=c(&quot;Longitude&quot;,&quot;Latitude&quot;),crs = 4326)%&gt;% #add geo-referenced information
+  rename( #rename some column names to operate easily
     CrimeID = CMPLNT_NUM,
-    CrimeType = OFNS_DESC,
-    Date = CMPLNT_FR_DT,
-    Time = CMPLNT_FR_TM)%&gt;%
-  mutate(Date = mdy(Date), #change data column into DATE type
-         DayofWeek = wday(Date,label = TRUE,abbr = FALSE), #get the information about day of week
-         Time = hour(hms(Time)))%&gt;% # get the hour of time
-  mutate(TimeInterval = time_interval$interval[match(.$Time, time_interval$id)])%&gt;% #add a new column storing time ranges
+    CrimeType = PD_DESC)%&gt;%
+  mutate(Date = mdy(CMPLNT_FR_DT),#change data column into DATE type
+         DayofWeek = wday(Date,label = TRUE,abbr = FALSE),
+         Day=wday(Date), #get the information about day of week
+         Time = hour(hms(CMPLNT_FR_TM)))%&gt;% #get the hour of time
+  mutate(TimeRange = time_range$range[match(.$Time, time_range$id)])%&gt;% #add a new column storing time ranges
   filter(BORO_NM == &quot;MANHATTAN&quot;&amp; #limit the study area
-         Date &gt;= ymd(20150101) &amp; #limit the study periods
-         Date &lt;= ymd(20171231))%&gt;%
-  select(&quot;CrimeType&quot;,&quot;DayofWeek&quot;,&quot;Time&quot;,&quot;TimeInterval&quot;) # select the relative columns
+           Date &gt;= ymd(20150101)&amp; #limit the study periods
+           Date &lt;= ymd(20171231))%&gt;%
+  select(&quot;CrimeType&quot;,&quot;DayofWeek&quot;,&quot;TimeRange&quot;,&quot;Time&quot;,&quot;Day&quot;) #select the relative columns
 
 #combine sub-classes of crime types into big classes
-crime_type &lt;- c(&quot;LARCENY&quot;,&quot;ASSAULT&quot;,&quot;HARRASSMENT&quot;,&quot;THEFT&quot;,&quot;ADMINISTRATIVE CODE&quot;,&quot;HOMICIDE&quot;,&quot;INTOXICATED&quot;,&quot;LOITERING&quot;,&quot;OTHERSTATE LAW&quot;,&quot;OFFENSES&quot;)
-for(i in 1:length(crime_type))  {
+crime_type &lt;- c(&quot;LARCENY&quot;,&quot;ASSAULT&quot;,&quot;HARASSMENT,SUBD&quot;,&quot;THEFT&quot;,&quot;ADMINISTRATIVE CODE&quot;,&quot;HOMICIDE&quot;,&quot;INTOXICATED&quot;,&quot;LOITERING&quot;,&quot;OTHERSTATE LAW&quot;,&quot;OFFENSES&quot;,&quot;CRIMINAL MISCHIEF&quot;)
+
+for(i in 1:length(crime_type)){
   crime_MAN$CrimeType[grep(crime_type[i],crime_MAN$CrimeType)] &lt;- crime_type[i]
-}
+  }
+crime_MAN$CrimeType[crime_MAN$CrimeType == &quot;HARASSMENT,SUBD&quot;] &lt;- &quot;HARASSMENT&quot;
 knitr::opts_chunk$set(cache = TRUE, warning = FALSE, 
                       message = FALSE, cache.lazy = FALSE)</code></pre>
 </div>
 <div id="landuse-dataset" class="section level3">
 <h3>Landuse Dataset</h3>
-<p>This code chunk is used to download and clean the land use data.</p>
+<p>This code chunk is used to download and clean the land use data. <br>In <code>pluto</code> dataset, there are 84 variables, such as a unique ID, land use code and title (such as ‘One &amp; Two Family Buildings’, ‘Multi-Family Walk-Up Buildings’, etc.), lot shape, area, tax code, address, as well as many other variables for each lot. And for this research, the interest is only in the geo-spatial and land use information for all lots in Manhattan. Therefore, the number of variables were reduced; leaving the following variables for further research: unique ID, land use ID and geo-spatial attributes. For displaying, Each land use ID is with the corresponding name, for instance 01—one &amp; two family buildings, 02—multi-family walk-up buildings, etc.</p>
 <pre class="r"><code>#please download and unzip the landuse dataset if you do not have
-landuse_url = &quot;https://www1.nyc.gov/assets/planning/download/zip/data-maps/open-data/nyc_mappluto_19v1_shp.zip&quot;
-landuse_file = &quot;pluto.zip&quot;
-download.file(landuse_url,destfile = landuse_file)
-unzip(landuse_file, exdir = &quot;pluto&quot;)
+landUse_url = &quot;https://www1.nyc.gov/assets/planning/download/zip/data-maps/open-data/nyc_mappluto_19v1_shp.zip&quot;
+landUse_file = &quot;pluto.zip&quot;
+download.file(landUse_url,destfile = landUse_file)
+unzip(landUse_file, exdir = &quot;pluto&quot;)
 
 #read the raw data
 mapluto &lt;-st_read(&quot;pluto/MapPLUTO.shp&quot;)
 
 #to add the name of each landuse type
-landuse_type &lt;- data.frame(id=c(1:12),type = c(&quot;One &amp; Two Family Buildings&quot;,
+landUse_type &lt;- data.frame(id=c(1:11),type = c(&quot;One &amp; Two Family Buildings&quot;,
                                                &quot;Multi-Family Walk-Up Buildings&quot;,
                                                &quot;Multi-Family Elevator Buildings&quot;, 
                                                &quot;Mixed Residential &amp; Commercial Buildings&quot;,
@@ -481,196 +486,353 @@ landuse_type &lt;- data.frame(id=c(1:12),type = c(&quot;One &amp; Two Family Bui
                                                &quot;Public Facilities &amp; Institutions&quot;,
                                                &quot;Open Space and Outdoor Recreation&quot;,
                                                &quot;Parking Facilities&quot;,
-                                               &quot;Vacant Land&quot;,
-                                               &quot;Unknown&quot;))
-#exract the relative information I need
-landuse_MAN &lt;- mapluto %&gt;%
-  st_transform(st_crs(crime_MAN))%&gt;% # make sure the same coordinate system
+                                               &quot;Vacant Land&quot;))
+#exract the relative information
+landUse_MAN &lt;- mapluto %&gt;%
+  st_transform(st_crs(crime_MAN))%&gt;% #make sure the same coordinate system
+  drop_na(LandUse)%&gt;%
   filter(Borough == &quot;MN&quot;)%&gt;% #limit the study area
-  select(&quot;Lot&quot;,&quot;LandUse&quot;)%&gt;%
-  rename(LanduseID = LandUse)%&gt;% #because the raw dataset just stored landuse id in &quot;LandUse&quot; Column
-  mutate(LanduseID = as.integer(LanduseID))%&gt;%
-  replace_na(LanduseID = 12)%&gt;% #replace NA value into 12-Unknown
-  mutate(Landuse = landuse_type$type[match(.$LanduseID, landuse_type$id)]) #add a new column storing land cover names
+  select(&quot;Lot&quot;,&quot;LandUse&quot;)%&gt;% 
+  rename(LandUseID = LandUse)%&gt;% #because the raw dataset just stored landuse id in &quot;LandUse&quot; Column
+  mutate(LandUseID = as.integer(LandUseID))%&gt;%
+  mutate(LandUse = landUse_type$type[match(.$LandUseID, landUse_type$id)]) #add a new column storing land cover names
+
 knitr::opts_chunk$set(cache = TRUE, warning = FALSE, 
                       message = FALSE, cache.lazy = FALSE)</code></pre>
 </div>
 </div>
 <div id="which-crime-types-are-most-frequently-happen" class="section level2">
 <h2>Which Crime types are most frequently happen?</h2>
-<p>This code chunk is used to get the answer, which is presented in Result part.</p>
+<p>This code chunk is used to get the table describing the top 10 occurred crime types, which is presented in <code>Result</code> part.</p>
 <pre class="r"><code>top10_Crime_MAN &lt;- crime_MAN %&gt;% 
   group_by(CrimeType)%&gt;%
-  summarize(amount = n())%&gt;% #calculate the number of each crime type occurred totally 
-  mutate(percent = amount/sum(amount)*100)%&gt;% #calculate the percent of each crime type
-  arrange(desc(amount))%&gt;% #sort ranging from the highest number to lowest one
+  summarize(Amount = n())%&gt;% #calculate the number of each crime type occurred totally 
+  mutate(Percent = Amount/sum(Amount)*100)%&gt;% #calculate the percent of each crime type
+  arrange(desc(Amount))%&gt;% #sort ranging from the highest number to lowest one
+  rename(&quot;Percent(%)&quot;=Percent,
+         &quot;Amount(Cases)&quot;=Amount)%&gt;%# rename for displaying
   st_set_geometry(NULL) #no need to have geometry information</code></pre>
 </div>
 <div id="time-series-analysis" class="section level2">
 <h2>Time Series Analysis</h2>
-<p>This code chunk is to analyze time preference of top 3 commited crime types and the graphes are presented in Result part.</p>
-<pre class="r"><code>top3 &lt;- data.frame(id=c(1:3),type = c(&quot;LARCENY&quot;,&quot;HARRASSMENT&quot;,&quot;ASSAULT&quot;))
+<p>This code chunk is to analyze time preference of top 3 commited crime types and the graphes are presented in <code>Result</code> part.</p>
+<pre class="r"><code>top3 &lt;- data.frame(id=c(1:3),type = c(&quot;LARCENY&quot;,&quot;HARASSMENT&quot;,&quot;ASSAULT&quot;))
 
 #get the numbers of cases happened of each crime type in different time ranges
 time_top3 &lt;- crime_MAN %&gt;%
+  st_set_geometry(NULL)%&gt;%
   filter(CrimeType %in% top3$type)%&gt;%
-  group_by(TimeInterval,CrimeType)%&gt;% 
-  summarize(amount=n())%&gt;%
-  st_set_geometry(NULL)
+  group_by(TimeRange,CrimeType)%&gt;% 
+  summarize(amount=n())
 
 #get the numbers of cases happened of each crime type in different days of week
 dw_top3 &lt;- crime_MAN %&gt;%
+  st_set_geometry(NULL)%&gt;%
   filter(CrimeType %in% top3$type)%&gt;%
   drop_na(DayofWeek)%&gt;%
   group_by(DayofWeek,CrimeType)%&gt;% 
-  summarize(amount=n())%&gt;%
-  st_set_geometry(NULL)</code></pre>
+  summarize(amount=n())</code></pre>
 </div>
 <div id="effects-of-land-uses-on-crime-types" class="section level2">
 <h2>Effects of Land Uses on Crime Types</h2>
-<p>Still Working on it… <br>Please skip this part and welcome to any suggestions. Thank you!!!</p>
+<p>This code chunk is to analyze land uses preference of top 3 commited crime types and the graphes are presented in <code>Result</code> part.</p>
 <pre class="r"><code>#add landuse information into the crime dataset
-top3_Crime_Landuse_MAN &lt;- crime_MAN %&gt;%
+top3_Crime_LandUse_MAN &lt;- crime_MAN %&gt;%
   filter(CrimeType %in% top3$type)%&gt;%
-  st_join(landuse_MAN,join = st_nearest_feature,left = FALSE)
+  st_join(landUse_MAN,join = st_nearest_feature,left = FALSE)
+top3_Crime_LandUse_MAN$CrimeTypeID = top3$id[match(top3_Crime_LandUse_MAN$CrimeType, top3$type)]
 
-#get the top 3 crime type dataframe seperately
-larceny &lt;- top3_Crime_Landuse_MAN %&gt;% filter(CrimeType == &quot;LARCENY&quot;)
-harrasment &lt;- top3_Crime_Landuse_MAN %&gt;% filter(CrimeType == &quot;HARRASSMENT&quot;)
-assault &lt;- top3_Crime_Landuse_MAN %&gt;% filter(CrimeType == &quot;ASSAULT&quot;)</code></pre>
+#get the numbers of cases happened of each crime type on different land covers
+ld_top3 &lt;- top3_Crime_LandUse_MAN %&gt;%
+  group_by(CrimeType,LandUse)%&gt;%
+  summarize(amount=n())</code></pre>
 </div>
-<div id="classification-models" class="section level2">
-<h2>Classification Models</h2>
-<p>Still Working on it… <br>Please skip this part and welcome to any suggestions. Thank you!!!</p>
+<div id="random-forest-classification-model" class="section level2">
+<h2>Random Forest Classification Model</h2>
+<div id="training-validation-and-test-data-sets" class="section level3">
+<h3>Training, Validation and Test Data sets</h3>
+<p>Before building models, one important thing is feature engineering. According to the visualization of the relation between crime types and days of week, there is not much siginificant correlation between them. So I removed <code>DayofWeek</code> and just used <code>Time</code> and <code>LandUseID</code> as features.And I used <code>dummy_cols()</code>function to make features into dummy variables. And then, I splited the data into three parts, training data for traning models, validation data for tuning parameters of models and test data for testing how models work well.</p>
+<pre class="r"><code>CL &lt;- top3_Crime_LandUse_MAN %&gt;% 
+  st_set_geometry(NULL)%&gt;%
+  select(&quot;CrimeTypeID&quot;,&quot;Time&quot;,&quot;LandUseID&quot;)
+
+CL.dummy &lt;- dummy_cols(CL,select_columns = c(&quot;Time&quot;,&quot;LandUseID&quot;))%&gt;%
+  subset(select = -c(Time,LandUseID))
+
+#split into train and test data
+set.seed(42)
+id &lt;- sample(nrow(CL.dummy), 0.8 * nrow(CL.dummy))
+train &lt;- CL.dummy[id, ]
+CL.test &lt;- CL.dummy[-id, ]
+
+#split train data into train data and validation data
+set.seed(42)
+train2 &lt;- train[-sample( which(train$CrimeTypeID == 1 ),67000), ]
+id2 &lt;- sample(nrow(train2), 0.8 * nrow(train2))
+CL.train &lt;- train2[id2, ]
+CL.validation &lt;- train2[-id2, ] </code></pre>
+</div>
+<div id="modeling" class="section level3">
+<h3>Modeling</h3>
+<p>This code chunk is to build the basic random forest model using default parameters.</p>
+<pre class="r"><code>set.seed(42)
+CL.train$CrimeTypeID &lt;- as.factor(CL.train$CrimeTypeID)
+CL.test$CrimeTypeID &lt;- as.factor(CL.test$CrimeTypeID)
+rf_model &lt;- ranger(CrimeTypeID ~ .,data=CL.train)
+pred &lt;- predict(rf_model, data = CL.test)
+
+CM_RF &lt;- table(CL.test$CrimeTypeID,pred$predictions)%&gt;%
+  kable()%&gt;%
+  kable_styling(bootstrap_options = &quot;striped&quot;, full_width = F)
+
+CM_RF</code></pre>
+<table class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:right;">
+1
+</th>
+<th style="text-align:right;">
+2
+</th>
+<th style="text-align:right;">
+3
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+14910
+</td>
+<td style="text-align:right;">
+6292
+</td>
+<td style="text-align:right;">
+4135
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+3156
+</td>
+<td style="text-align:right;">
+3282
+</td>
+<td style="text-align:right;">
+1369
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2385
+</td>
+<td style="text-align:right;">
+2093
+</td>
+<td style="text-align:right;">
+2693
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="parameter-tuning" class="section level3">
+<h3>Parameter Tuning</h3>
+<div id="mtry" class="section level4">
+<h4>Mtry</h4>
+<pre class="r"><code>CL.validation$CrimeTypeID &lt;- as.factor(CL.validation$CrimeTypeID)
+n= length(names(CL.validation))
+errTable &lt;-c()
+
+for (i in 1:(n-1)){
+  mtry_fit &lt;- randomForest(CrimeTypeID~.,CL.validation,mtry=i)
+  err = mean(mtry_fit$err.rate)
+  errTable &lt;- rbind(errTable,c(i,err))
+}
+
+colnames(errTable) &lt;- c(&quot;mtry&quot;,&quot;err&quot;)
+errTable2 &lt;- as.data.frame(errTable)
+errTable &lt;- errTable2%&gt;% arrange(err)
+
+kable(errTable[1:3,])%&gt;%
+  kable_styling(bootstrap_options = &quot;striped&quot;, full_width = F)</code></pre>
+<table class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:right;">
+mtry
+</th>
+<th style="text-align:right;">
+err
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+17
+</td>
+<td style="text-align:right;">
+0.5363081
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+27
+</td>
+<td style="text-align:right;">
+0.5366293
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+8
+</td>
+<td style="text-align:right;">
+0.5369584
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="num.tree" class="section level4">
+<h4>Num.tree</h4>
+<pre class="r"><code>  ntree_fit&lt;-randomForest(CrimeTypeID~.,CL.validation,mtry=17,ntree=1000)
+  plot(ntree_fit)</code></pre>
+<p><img src="index_files/figure-html/parameter_tuning2-1.png" width="672" /></p>
+</div>
+</div>
 </div>
 </div>
 <div id="results" class="section level1">
 <h1>Results</h1>
 <div id="top-ten-most-committed-crime-types" class="section level2">
 <h2>Top ten most committed crime types</h2>
-<table>
+<p>From 2015-2017, there are 342640 cases of crime occurred. The largest crime in Manhattan with 126413 registered cases by police, resulting in 36.89% of all crimes. Larceny is followed by harassment, having 38829 registered cases, resulting in 11.33% of all crimes. Assault was the third largest crime in Manhattan (after larceny and harassment) with 36333 registered cases, resulting in 10.6% of all crimes. <br>According to the criminal law and the Penal Code, <code>larceny</code> is ‘the unlawful taking and carrying away of someone else’s property without the consent of the owner and with the intent to permanently deprive the owner of the property’. <code>Criminal harassment</code> entails ‘intentionally targeting someone else with behavior that is meant to alarm, annoy, torment or terrorize them’.<code>Assault</code> is ‘a physical attack on someone’. Under New York Penal Law, <code>assault</code> is when a person <br>i) has an intent to cause physical injury to another person, <br>or ii) he recklessly causes physical injury to another person, <br>or iii) with criminal negligence, he causes physical injury to another person by means of a deadly weapon or a dangerous instrument.</p>
+<table class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
 <thead>
 <tr>
 <th style="text-align:left;">
 CrimeType
 </th>
 <th style="text-align:right;">
-amount
+Amount(Cases)
 </th>
 <th style="text-align:right;">
-percent
+Percent(%)
 </th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td style="text-align:left;">
+<td style="text-align:left;font-weight: bold;color: white !important;background-color: #D7261E !important;">
 LARCENY
 </td>
-<td style="text-align:right;">
+<td style="text-align:right;font-weight: bold;color: white !important;background-color: #D7261E !important;">
 126413
 </td>
-<td style="text-align:right;">
-36.893824
+<td style="text-align:right;font-weight: bold;color: white !important;background-color: #D7261E !important;">
+36.89
 </td>
 </tr>
 <tr>
-<td style="text-align:left;">
-ASSAULT
+<td style="text-align:left;font-weight: bold;color: white !important;background-color: #D7261E !important;">
+HARASSMENT
 </td>
-<td style="text-align:right;">
-42040
-</td>
-<td style="text-align:right;">
-12.269437
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-HARRASSMENT
-</td>
-<td style="text-align:right;">
+<td style="text-align:right;font-weight: bold;color: white !important;background-color: #D7261E !important;">
 38829
 </td>
-<td style="text-align:right;">
-11.332302
+<td style="text-align:right;font-weight: bold;color: white !important;background-color: #D7261E !important;">
+11.33
+</td>
+</tr>
+<tr>
+<td style="text-align:left;font-weight: bold;color: white !important;background-color: #D7261E !important;">
+ASSAULT
+</td>
+<td style="text-align:right;font-weight: bold;color: white !important;background-color: #D7261E !important;">
+36333
+</td>
+<td style="text-align:right;font-weight: bold;color: white !important;background-color: #D7261E !important;">
+10.60
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-CRIMINAL MISCHIEF &amp; RELATED OF
+CRIMINAL MISCHIEF
 </td>
 <td style="text-align:right;">
-29934
+17936
 </td>
 <td style="text-align:right;">
-8.736283
+5.23
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-DANGEROUS DRUGS
+AGGRAVATED HARASSMENT 2
 </td>
 <td style="text-align:right;">
-18824
+12368
 </td>
 <td style="text-align:right;">
-5.493813
+3.61
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-OFF. AGNST PUB ORD SENSBLTY &amp;
+MARIJUANA, POSSESSION 4 &amp; 5
 </td>
 <td style="text-align:right;">
-13478
+9015
 </td>
 <td style="text-align:right;">
-3.933575
+2.63
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-OFFENSES
+CONTROLLED SUBSTANCE, POSSESSI
 </td>
 <td style="text-align:right;">
-10733
+6618
 </td>
 <td style="text-align:right;">
-3.132442
+1.93
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-ROBBERY
+MISCHIEF, CRIMINAL 4, OF MOTOR
 </td>
 <td style="text-align:right;">
-8855
+6315
 </td>
 <td style="text-align:right;">
-2.584345
+1.84
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-BURGLARY
+FRAUD,UNCLASSIFIED-FELONY
 </td>
 <td style="text-align:right;">
-7660
+4268
 </td>
 <td style="text-align:right;">
-2.235583
+1.25
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-DANGEROUS WEAPONS
+FORGERY,ETC.,UNCLASSIFIED-FELO
 </td>
 <td style="text-align:right;">
-6361
+4013
 </td>
 <td style="text-align:right;">
-1.856467
+1.17
 </td>
 </tr>
 </tbody>
@@ -684,6 +846,201 @@ DANGEROUS WEAPONS
 <h2>The Preference on Day of Week of Top Three Committed Crime Types</h2>
 <p><img src="index_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
 </div>
+<div id="the-preference-on-land-uses-of-top-three-committed-crime-types" class="section level2">
+<h2>The Preference on Land Uses of Top Three Committed Crime Types</h2>
+<p><img src="index_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+</div>
+<div id="importance-of-features" class="section level2">
+<h2>Importance of Features</h2>
+<table class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+features
+</th>
+<th style="text-align:right;">
+importance
+</th>
+<th style="text-align:right;">
+pvalue
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Time_2
+</td>
+<td style="text-align:right;">
+140.94892
+</td>
+<td style="text-align:right;">
+0.0000000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Time_3
+</td>
+<td style="text-align:right;">
+169.87307
+</td>
+<td style="text-align:right;">
+0.0000000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Time_4
+</td>
+<td style="text-align:right;">
+165.86577
+</td>
+<td style="text-align:right;">
+0.0000000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Time_1
+</td>
+<td style="text-align:right;">
+105.18818
+</td>
+<td style="text-align:right;">
+0.0000000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+LandUseID_4
+</td>
+<td style="text-align:right;">
+53.73114
+</td>
+<td style="text-align:right;">
+0.0000000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+LandUseID_2
+</td>
+<td style="text-align:right;">
+44.26096
+</td>
+<td style="text-align:right;">
+0.0000000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+LandUseID_5
+</td>
+<td style="text-align:right;">
+323.29498
+</td>
+<td style="text-align:right;">
+0.0000000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+LandUseID_3
+</td>
+<td style="text-align:right;">
+102.43923
+</td>
+<td style="text-align:right;">
+0.0000000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+LandUseID_8
+</td>
+<td style="text-align:right;">
+27.71021
+</td>
+<td style="text-align:right;">
+0.0681818
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Time_12
+</td>
+<td style="text-align:right;">
+23.93541
+</td>
+<td style="text-align:right;">
+0.1590909
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="random-forest-classification-model-1" class="section level2">
+<h2>Random Forest Classification Model</h2>
+<pre class="r"><code>RF.CL &lt;- ranger(CrimeTypeID ~ .,data=CL.train,num.trees = 500,mtry=7)
+pred.CL &lt;- predict(RF.CL, data = CL.test)
+
+CM_RF1 &lt;- table(CL.test$CrimeTypeID,pred.CL$predictions)%&gt;%
+  kable()%&gt;%
+  kable_styling(bootstrap_options = &quot;striped&quot;, full_width = F)
+
+CM_RF1</code></pre>
+<table class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:right;">
+1
+</th>
+<th style="text-align:right;">
+2
+</th>
+<th style="text-align:right;">
+3
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+14739
+</td>
+<td style="text-align:right;">
+6087
+</td>
+<td style="text-align:right;">
+4511
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+3109
+</td>
+<td style="text-align:right;">
+3140
+</td>
+<td style="text-align:right;">
+1558
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2298
+</td>
+<td style="text-align:right;">
+1964
+</td>
+<td style="text-align:right;">
+2909
+</td>
+</tr>
+</tbody>
+</table>
+</div>
 </div>
 <div id="conclusions" class="section level1">
 <h1>Conclusions</h1>
@@ -691,6 +1048,7 @@ DANGEROUS WEAPONS
 </div>
 <div id="references" class="section level1">
 <h1>References</h1>
+<p><em><a href=http://www.predpol.com/how-predictivepolicing-works/>Predpol. How Predictive PolicingWorks. 2018.</a> </em>Matijosaitiene, I.; Zhao, P.; Jaume, S.; Gilkey Jr, J.W. Prediction of Hourly Effect of Land Use on Crime. ISPRS Int. J. Geo-Inf. 2019, 8, 16. *Almanie, Tahani; Mirza, Rsha.; Lor, Elizabeth. Crime Prediction Based On Crime Types And Using Spatial And Temporal Criminal Hotspots. IJDKP Int. J. Data Mining &amp; Knowledge Managemrnt Process. Vol.5, No.4, July 2015</p>
 </div>
 
 <!-- give the footer some space -->
