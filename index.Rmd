@@ -1,30 +1,33 @@
 ---
 title: "Crime Prediction in Manhattan, NYC"
 author: "Stella Liao"
-subtitle: Visualization and Classification for Larceny, Assault and Harassment
-output: html_document
+subtitle: Random Forest Classification for Larceny, Harassment and Assault
+output: 
+  html_document
 ---
 
 # Introduction
-Crime is a social issue, like a disease, which tends to spread as spatial clusters. We are always seeking for a way to minimize and prevent the occurrance of crime. Imagine if we could predict where the probability of crime occurring, our police could deploy the law enforcement to the potentially dangerous areas, which is more efficient. Usually, we may assume occurance of crime as random and researchers used behavioral and social methods to study it. However, with the development of data analysis and techonology, we could use more quantitative ways to analyze it.
+Crime is a social issue, like a disease, which tends to spread as spatial clusters. We are always seeking for ways to minimize and prevent the occurrence of crime. Imagine if we could predict the probability of where and when crime occurs, our police could deploy the law enforcement to potentially dangerous areas more efficiently.  And usually, we may regard the occurrence of crime as random and use behavioral and social methods to study it. However, with the development of data analysis and technology, we could use some quantitative ways to analyze it.
 
-For example, there is one program named PredPol, which is conducted by researchers from the University of California, Los Angeles (UCLA). With the help of the department of Los Angeles Police, they collected about 13 billion cases in 80 years and just used two variables, when and where to build models to predict where a crime could happen during each day, which is amazing and shows us the power of the environment influenting human's choice. And another paper written by Dr.Irina Matijosaitiene revealed the effect of land uses on crime type classification and prediction.
+There is one program named PredPol, conducted by researchers from the University of California, Los Angeles (UCLA). They collected about 13 billion crime cases in 80 years and just used two variables, `when` and `where` to build models to predict where a crime could happen during each day, which is amazing and shows us the power of the environment influencing human's choice. And the paper written by Dr. Irina Matijosaitiene revealed the effect of land uses on crime type classification and prediction.
 
-When using classification models, they are actually calculating the probability of when and where one crime type may happe. So in this project, I will focus on classification models. Of course, I'd like to use visulazation to give audience an intuitive feel about the relationship between the occurance of crime with time and location.
+So, in this project,  I'd like to use visualization at first to give an intuitive feel about the relationship between the occurrence of crime with `when` and `where`. And then I will build classification models for different crime types by using `when` and `where` as features input in my models.
 
 # Materials and methods 
-I will use the crime data from 2015-2017 in Manhattan, New York City to build classification models to classify the top three crime types occurred in this study area, which are larceny, assault and harassment. And the main factors input as features in the models are time and location, to be specific, time refers to exact time and day of week, and location refers to land use.
+I will use the crime data from 2015-2017 in Manhattan, New York City to build classification models to classify the top three crime types occurred in this study area, which are larceny, harassment and assault. And the main factors input as features in the models are `time` and `location`, to be specific, `time` refers to exact time and day of week, and `location` refers to land use.
 
 * Dataset Sources
   * <a href="https://data.cityofnewyork.us/Public-Safety/NYPD-Complaint-Data-Historic/qgea-i56i">NYPD Complaint Data</a>, a CSV file recording all crime occurance in New York City from 2006-2017
   * <a href="https://www1.nyc.gov/site/planning/data-maps/open-data/dwn-pluto-mappluto.page">Primary Land Use Tax Lot Output(PLUTO)</a>, a shapfile containing land cover information of New York City
-* Relationship between crime types with time and location
+* Relationships between crime types with time and location
   * Time Series Analysis
   * Effects of Land Uses on Crime Types
-* Classification Models
-  * Logistic Regression
-  * Random Forest
-  * Naïve Bayes Classification
+* Random Forest Classification Model
+  * Training, validation and test data sets
+  * Feature Engineering
+  * Modeling
+  * Parameter Tuning
+  * Evaluation
   
 ## Load all required packages
 ```{r load_packages, message=FALSE, warning=FALSE}
@@ -36,11 +39,12 @@ library(lubridate)
 library(sp)
 library(sf)
 library(ggplot2)
-library(mapview)
 library(knitr)
-library(naivebayes)
-library(randomForest)
-library(ggpubr)
+library(kableExtra) #for table styling
+library(fastDummies) #get the dummy variables
+library(ranger)#random forest model
+library(randomForest) #random forest model
+
 knitr::opts_chunk$set(cache=TRUE,cache.lazy = FALSE)  # cache the results for quick compiling
 ```
 
@@ -48,7 +52,9 @@ knitr::opts_chunk$set(cache=TRUE,cache.lazy = FALSE)  # cache the results for qu
 
 ### Crime Dataset
 
-This code chunk is used to download and clean the crime data.
+This code chunk is used to download and clean the crime data. 
+<br>in `nypd` dataset, the granularity of crime classification into multiple crime sub-types is very small for this project, for example, `assault` is
+classified as `assault 1`, `assault 2`, `assault peace officer`, etc. As the very small granularity of crimes is out of the research goal, and it does not focus on the smaller sub-types of crime (for instance, `larceny in chain stores`, `larceny in boutiques`, `larceny in clothing stores`, etc.), the project has aggregated crime sub-types into larger groups, such as `larceny`, `harassment`, `assault`, `burglary`, etc., using only crime data for 2015–2017. In crime analysis, especially crime in terms of urban planning, data from the recent 2-3 years is the most commonly used.
 
 ```{r crime_data_cleaned, message=FALSE, warning=FALSE, results='hide'}
 #read the raw data
@@ -60,38 +66,39 @@ nypd <-read.csv(crime_file,stringsAsFactors = FALSE)
 
 #clean and tidy crime data
 #classify exact time into different time ranges
-time_interval<- data.frame(id = c("00","01","02","03","04","056","06","07","08","09","10","11","12",
-                                  "13","14","15","16","17","18","19","20","21","22","23","24"),
-                           interval = c("00-01","01-02","02-03","03-04","04-05","05-06","06-07","07-08",
-                                        "08-09","09-10","10-11","11-12","12-13","13-14","14-15","15-16",
-                                        "16-17","17-18","18-19","19-20","20-21","21-22","22-23","23-24","00-01"))
+time_range<- data.frame(id=c(0:24),
+                        range= c("00-01","01-02","02-03","03-04","04-05","05-06","06-07","07-08",
+                                  "08-09","09-10","10-11","11-12","12-13","13-14","14-15","15-16",
+                                  "16-17","17-18","18-19","19-20","20-21","21-22","22-23","23-24","00-01"))
+
 
 #exract the relative information into crime_MAN dataframe
 crime_MAN <- nypd %>%
-  drop_na(Longitude)%>% # remove NA value
+  drop_na(Longitude)%>% #remove NA value
   drop_na(Latitude)%>%
   drop_na(CMPLNT_FR_DT)%>%
   drop_na(CMPLNT_FR_TM)%>%
-  st_as_sf(coords=c("Longitude","Latitude"),crs = 4326)%>% # add georeferenced information
-  rename(# rename some column names to operate easily
+  st_as_sf(coords=c("Longitude","Latitude"),crs = 4326)%>% #add geo-referenced information
+  rename( #rename some column names to operate easily
     CrimeID = CMPLNT_NUM,
-    CrimeType = OFNS_DESC,
-    Date = CMPLNT_FR_DT,
-    Time = CMPLNT_FR_TM)%>%
-  mutate(Date = mdy(Date), #change data column into DATE type
-         DayofWeek = wday(Date,label = TRUE,abbr = FALSE), #get the information about day of week
-         Time = hour(hms(Time)))%>% # get the hour of time
-  mutate(TimeInterval = time_interval$interval[match(.$Time, time_interval$id)])%>% #add a new column storing time ranges
+    CrimeType = PD_DESC)%>%
+  mutate(Date = mdy(CMPLNT_FR_DT),#change data column into DATE type
+         DayofWeek = wday(Date,label = TRUE,abbr = FALSE),
+         Day=wday(Date), #get the information about day of week
+         Time = hour(hms(CMPLNT_FR_TM)))%>% #get the hour of time
+  mutate(TimeRange = time_range$range[match(.$Time, time_range$id)])%>% #add a new column storing time ranges
   filter(BORO_NM == "MANHATTAN"& #limit the study area
-         Date >= ymd(20150101) & #limit the study periods
-         Date <= ymd(20171231))%>%
-  select("CrimeType","DayofWeek","Time","TimeInterval") # select the relative columns
+           Date >= ymd(20150101)& #limit the study periods
+           Date <= ymd(20171231))%>%
+  select("CrimeType","DayofWeek","TimeRange","Time","Day") #select the relative columns
 
 #combine sub-classes of crime types into big classes
-crime_type <- c("LARCENY","ASSAULT","HARRASSMENT","THEFT","ADMINISTRATIVE CODE","HOMICIDE","INTOXICATED","LOITERING","OTHERSTATE LAW","OFFENSES")
-for(i in 1:length(crime_type))  {
+crime_type <- c("LARCENY","ASSAULT","HARASSMENT,SUBD","THEFT","ADMINISTRATIVE CODE","HOMICIDE","INTOXICATED","LOITERING","OTHERSTATE LAW","OFFENSES","CRIMINAL MISCHIEF")
+
+for(i in 1:length(crime_type)){
   crime_MAN$CrimeType[grep(crime_type[i],crime_MAN$CrimeType)] <- crime_type[i]
-}
+  }
+crime_MAN$CrimeType[crime_MAN$CrimeType == "HARASSMENT,SUBD"] <- "HARASSMENT"
 knitr::opts_chunk$set(cache = TRUE, warning = FALSE, 
                       message = FALSE, cache.lazy = FALSE)
 
@@ -100,20 +107,21 @@ knitr::opts_chunk$set(cache = TRUE, warning = FALSE,
 ### Landuse Dataset
 
 This code chunk is used to download and clean the land use data.
+<br>In `pluto` dataset, there are 84 variables, such as a unique ID, land use code and title (such as ‘One & Two Family Buildings’, ‘Multi-Family Walk-Up Buildings’, etc.), lot shape, area, tax code, address, as well as many other variables for each lot. And for this research, the interest is only in the geo-spatial and land use information for all lots in Manhattan. Therefore, the number of variables were reduced; leaving the following variables for further research: unique ID, land use ID and geo-spatial attributes. For displaying, Each land use ID is with the corresponding name, for instance 01—one & two family buildings, 02—multi-family walk-up buildings, etc. 
 
 ```{r landuse_data_clean, message=FALSE, warning=FALSE, results='hide'}
 
 #please download and unzip the landuse dataset if you do not have
-landuse_url = "https://www1.nyc.gov/assets/planning/download/zip/data-maps/open-data/nyc_mappluto_19v1_shp.zip"
-landuse_file = "pluto.zip"
-download.file(landuse_url,destfile = landuse_file)
-unzip(landuse_file, exdir = "pluto")
+landUse_url = "https://www1.nyc.gov/assets/planning/download/zip/data-maps/open-data/nyc_mappluto_19v1_shp.zip"
+landUse_file = "pluto.zip"
+download.file(landUse_url,destfile = landUse_file)
+unzip(landUse_file, exdir = "pluto")
 
 #read the raw data
 mapluto <-st_read("pluto/MapPLUTO.shp")
 
 #to add the name of each landuse type
-landuse_type <- data.frame(id=c(1:12),type = c("One & Two Family Buildings",
+landUse_type <- data.frame(id=c(1:11),type = c("One & Two Family Buildings",
                                                "Multi-Family Walk-Up Buildings",
                                                "Multi-Family Elevator Buildings", 
                                                "Mixed Residential & Commercial Buildings",
@@ -123,96 +131,177 @@ landuse_type <- data.frame(id=c(1:12),type = c("One & Two Family Buildings",
                                                "Public Facilities & Institutions",
                                                "Open Space and Outdoor Recreation",
                                                "Parking Facilities",
-                                               "Vacant Land",
-                                               "Unknown"))
-#exract the relative information I need
-landuse_MAN <- mapluto %>%
-  st_transform(st_crs(crime_MAN))%>% # make sure the same coordinate system
+                                               "Vacant Land"))
+#exract the relative information
+landUse_MAN <- mapluto %>%
+  st_transform(st_crs(crime_MAN))%>% #make sure the same coordinate system
+  drop_na(LandUse)%>%
   filter(Borough == "MN")%>% #limit the study area
-  select("Lot","LandUse")%>%
-  rename(LanduseID = LandUse)%>% #because the raw dataset just stored landuse id in "LandUse" Column
-  mutate(LanduseID = as.integer(LanduseID))%>%
-  replace_na(LanduseID = 12)%>% #replace NA value into 12-Unknown
-  mutate(Landuse = landuse_type$type[match(.$LanduseID, landuse_type$id)]) #add a new column storing land cover names
+  select("Lot","LandUse")%>% 
+  rename(LandUseID = LandUse)%>% #because the raw dataset just stored landuse id in "LandUse" Column
+  mutate(LandUseID = as.integer(LandUseID))%>%
+  mutate(LandUse = landUse_type$type[match(.$LandUseID, landUse_type$id)]) #add a new column storing land cover names
+
 knitr::opts_chunk$set(cache = TRUE, warning = FALSE, 
                       message = FALSE, cache.lazy = FALSE)
 ```
 
 ## Which Crime types are most frequently happen?
 
-This code chunk is used to get the answer, which is presented in Result part.
+This code chunk is used to get the table describing the top 10 occurred crime types, which is presented in `Result` part.
 
 ```{r top_10_crime_types, message=FALSE, warning=FALSE, results='hide'}
 top10_Crime_MAN <- crime_MAN %>% 
   group_by(CrimeType)%>%
-  summarize(amount = n())%>% #calculate the number of each crime type occurred totally 
-  mutate(percent = amount/sum(amount)*100)%>% #calculate the percent of each crime type
-  arrange(desc(amount))%>% #sort ranging from the highest number to lowest one
+  summarize(Amount = n())%>% #calculate the number of each crime type occurred totally 
+  mutate(Percent = Amount/sum(Amount)*100)%>% #calculate the percent of each crime type
+  arrange(desc(Amount))%>% #sort ranging from the highest number to lowest one
+  rename("Percent(%)"=Percent,
+         "Amount(Cases)"=Amount)%>%# rename for displaying
   st_set_geometry(NULL) #no need to have geometry information
 ```
 
 
 ## Time Series Analysis 
 
-This code chunk is to analyze time preference of top 3 commited crime types and the graphes are presented in Result part.
+This code chunk is to analyze time preference of top 3 commited crime types and the graphes are presented in `Result` part.
 
 ```{r top_3_crime_types, message=FALSE, warning=FALSE, results='hide'}
-top3 <- data.frame(id=c(1:3),type = c("LARCENY","HARRASSMENT","ASSAULT"))
+top3 <- data.frame(id=c(1:3),type = c("LARCENY","HARASSMENT","ASSAULT"))
 
 #get the numbers of cases happened of each crime type in different time ranges
 time_top3 <- crime_MAN %>%
+  st_set_geometry(NULL)%>%
   filter(CrimeType %in% top3$type)%>%
-  group_by(TimeInterval,CrimeType)%>% 
-  summarize(amount=n())%>%
-  st_set_geometry(NULL)
+  group_by(TimeRange,CrimeType)%>% 
+  summarize(amount=n())
 
 #get the numbers of cases happened of each crime type in different days of week
 dw_top3 <- crime_MAN %>%
+  st_set_geometry(NULL)%>%
   filter(CrimeType %in% top3$type)%>%
   drop_na(DayofWeek)%>%
   group_by(DayofWeek,CrimeType)%>% 
-  summarize(amount=n())%>%
-  st_set_geometry(NULL)
+  summarize(amount=n())
 
 ```
 
 ## Effects of Land Uses on Crime Types
 
-Still Working on it...
-<br>Please skip this part and welcome to any suggestions. Thank you!!!
+This code chunk is to analyze land uses preference of top 3 commited crime types and the graphes are presented in `Result` part.
 
 ```{r land_use_effect, message=FALSE, warning=FALSE, results='hide'}
 #add landuse information into the crime dataset
-top3_Crime_Landuse_MAN <- crime_MAN %>%
+top3_Crime_LandUse_MAN <- crime_MAN %>%
   filter(CrimeType %in% top3$type)%>%
-  st_join(landuse_MAN,join = st_nearest_feature,left = FALSE)
+  st_join(landUse_MAN,join = st_nearest_feature,left = FALSE)
+top3_Crime_LandUse_MAN$CrimeTypeID = top3$id[match(top3_Crime_LandUse_MAN$CrimeType, top3$type)]
 
-#get the top 3 crime type dataframe seperately
-larceny <- top3_Crime_Landuse_MAN %>% filter(CrimeType == "LARCENY")
-harrasment <- top3_Crime_Landuse_MAN %>% filter(CrimeType == "HARRASSMENT")
-assault <- top3_Crime_Landuse_MAN %>% filter(CrimeType == "ASSAULT")
+#get the numbers of cases happened of each crime type on different land covers
+ld_top3 <- top3_Crime_LandUse_MAN %>%
+  group_by(CrimeType,LandUse)%>%
+  summarize(amount=n())
+```
+
+## Random Forest Classification Model
+
+### Training, Validation and Test Data sets
+
+Before building models, one important thing is feature engineering. According to the visualization of the relation between crime types and days of week, there is not much siginificant correlation between them. So I removed `DayofWeek` and just used `Time` and `LandUseID` as features.And I used `dummy_cols()`function to make features into dummy variables. And then, I splited the data into three parts, training data for traning models, validation data for tuning parameters of models and test data for testing how models work well.
+
+```{r data_process_classification, message=FALSE, warning=FALSE, results='hide'}
+CL <- top3_Crime_LandUse_MAN %>% 
+  st_set_geometry(NULL)%>%
+  select("CrimeTypeID","Time","LandUseID")
+
+CL.dummy <- dummy_cols(CL,select_columns = c("Time","LandUseID"))%>%
+  subset(select = -c(Time,LandUseID))
+
+#split into train and test data
+set.seed(42)
+id <- sample(nrow(CL.dummy), 0.8 * nrow(CL.dummy))
+train <- CL.dummy[id, ]
+CL.test <- CL.dummy[-id, ]
+
+#split train data into train data and validation data
+set.seed(42)
+train2 <- train[-sample( which(train$CrimeTypeID == 1 ),67000), ]
+id2 <- sample(nrow(train2), 0.8 * nrow(train2))
+CL.train <- train2[id2, ]
+CL.validation <- train2[-id2, ] 
 
 ```
 
-## Classification Models
+### Modeling
 
-Still Working on it...
-<br>Please skip this part and welcome to any suggestions. Thank you!!!
+This code chunk is to build the basic random forest model using default parameters.
+
+```{r rf_classification, echo=TRUE, message=FALSE, warning=FALSE}
+set.seed(42)
+CL.train$CrimeTypeID <- as.factor(CL.train$CrimeTypeID)
+CL.test$CrimeTypeID <- as.factor(CL.test$CrimeTypeID)
+rf_model <- ranger(CrimeTypeID ~ .,data=CL.train)
+pred <- predict(rf_model, data = CL.test)
+
+CM_RF <- table(CL.test$CrimeTypeID,pred$predictions)%>%
+  kable()%>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
+
+CM_RF
+
+```
+
+### Parameter Tuning
+
+#### Mtry
+```{r parameter_tuning, echo=TRUE}
+CL.validation$CrimeTypeID <- as.factor(CL.validation$CrimeTypeID)
+n= length(names(CL.validation))
+errTable <-c()
+
+for (i in 1:(n-1)){
+  mtry_fit <- randomForest(CrimeTypeID~.,CL.validation,mtry=i)
+  err = mean(mtry_fit$err.rate)
+  errTable <- rbind(errTable,c(i,err))
+}
+
+colnames(errTable) <- c("mtry","err")
+errTable2 <- as.data.frame(errTable)
+errTable <- errTable2%>% arrange(err)
+
+kable(errTable[1:3,])%>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
+```
+#### Num.tree
+```{r parameter_tuning2, echo=TRUE}
+  ntree_fit<-randomForest(CrimeTypeID~.,CL.validation,mtry=17,ntree=1000)
+  plot(ntree_fit)
+```
 
 # Results
 
 ## Top ten most committed crime types
+
+From 2015-2017, there are 342640 cases of crime occurred. The largest crime in Manhattan with 126413 registered cases by police, resulting in 36.89% of all crimes. Larceny is followed by harassment, having 38829 registered cases, resulting in 11.33% of all crimes. Assault was the third largest crime in Manhattan (after larceny and harassment) with
+36333 registered cases, resulting in 10.6% of all crimes. 
+<br>According to the criminal law and the Penal Code, `larceny` is ‘the unlawful taking and carrying away of someone else’s property without the consent of the owner and with the intent to permanently deprive the owner of the property'. `Criminal harassment` entails ‘intentionally targeting someone else with behavior that is meant to alarm, annoy, torment or terrorize them’.`Assault` is ‘a physical attack on someone’. Under New York Penal Law, `assault` is when a person <br>i) has an intent to cause physical injury to another person, <br>or ii) he recklessly causes physical injury to another person, <br>or iii) with criminal negligence, he causes physical injury to another person by means of a deadly weapon or a dangerous instrument.
+
 ```{r echo=FALSE}
-kable(top10_Crime_MAN[1:10,]) 
+kable(top10_Crime_MAN[1:10,],digits = c(0,2,2))%>% # remain 2 digits
+  kable_styling(bootstrap_options = "striped", full_width = F)%>%
+  row_spec(1:3, bold = T, color = "white", background = "#D7261E")
 ```
 
 ## The Preference on Time of Top Three Committed Crime Types
+
 ```{r echo=FALSE}
-ggplot(time_top3,aes(x = TimeInterval, y= amount,group=1))+
+ggplot(time_top3,aes(x = TimeRange, y= amount,group=1))+
   geom_point(aes(color = CrimeType))+
   geom_line(aes(color = CrimeType))+
   facet_grid(~CrimeType)+
-  theme(legend.position = "none",axis.text.x = element_text(angle = 60, hjust = 1))
+  theme(legend.position = "none",axis.text.x = element_text(angle = 60, hjust = 1))+
+  labs(x="Time Range",y="Amount(Cases)")
+
 ```
 
 ## The Preference on Day of Week of Top Three Committed Crime Types
@@ -221,11 +310,53 @@ ggplot(dw_top3,aes(x = DayofWeek, y= amount, group = 1))+
   geom_point(aes(color = CrimeType))+
   geom_line(aes(color = CrimeType))+
   facet_wrap(~CrimeType)+
-  theme(legend.position = "none",axis.text.x = element_text(angle = 60, hjust = 1))
+  theme(legend.position = "none",axis.text.x = element_text(angle = 60, hjust = 1))+
+  labs(x="Time Range", y="Amount(Cases)")
 ```
+
+## The Preference on Land Uses of Top Three Committed Crime Types
+```{r echo=FALSE}
+ggplot(ld_top3,aes(x = LandUse, y= amount,group=1))+
+  geom_point(aes(color = CrimeType))+
+  geom_line(aes(color = CrimeType))+
+  facet_grid(~CrimeType)+
+  theme(legend.position = "none",axis.text.x = element_text(angle = 60, hjust = 1))
+
+```
+
+
+## Importance of Features
+```{r importance of features, echo=FALSE, message=FALSE, warning=FALSE}
+## Janitza's p-values with corrected Gini importance
+rf.sim <- ranger(CrimeTypeID ~ ., CL.train, importance = "impurity_corrected")
+t<-importance_pvalues(rf.sim, method = "janitza")
+
+t2 <- data.frame(features = row.names(t),t)
+t3 <- t2%>%
+  arrange(pvalue)
+kable(t3[1:10,1:3])%>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
+```
+## Random Forest Classification Model
+
+```{r echo=TRUE}
+RF.CL <- ranger(CrimeTypeID ~ .,data=CL.train,num.trees = 500,mtry=7)
+pred.CL <- predict(RF.CL, data = CL.test)
+
+CM_RF1 <- table(CL.test$CrimeTypeID,pred.CL$predictions)%>%
+  kable()%>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
+
+CM_RF1
+
+```
+
 
 # Conclusions
 
 What have you learned?  Are there any broader implications?
 
 # References
+*<a href=http://www.predpol.com/how-predictivepolicing-works/>Predpol. How Predictive PolicingWorks. 2018.</a>
+*Matijosaitiene, I.; Zhao, P.; Jaume, S.; Gilkey Jr, J.W. Prediction of Hourly Effect of Land Use on Crime. ISPRS Int. J. Geo-Inf. 2019, 8, 16.
+*Almanie, Tahani; Mirza, Rsha.; Lor, Elizabeth. Crime Prediction Based On Crime Types And Using Spatial And Temporal Criminal Hotspots. IJDKP Int. J. Data Mining & Knowledge Managemrnt Process. Vol.5, No.4, July 2015
