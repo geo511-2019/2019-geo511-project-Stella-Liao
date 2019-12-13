@@ -369,8 +369,8 @@ div.tocify {
 <div id="introduction" class="section level1">
 <h1>Introduction</h1>
 <p>Crime is a social issue, like a disease, which tends to spread as spatial clusters. We are always seeking for ways to minimize and prevent the occurrence of crime. Imagine if we could predict the probability of where and when crime occurs, our police could deploy the law enforcement to potentially dangerous areas more efficiently. And usually, we may regard the occurrence of crime as random and use behavioral and social methods to study it. However, with the development of data analysis and technology, we could use some quantitative ways to analyze it.</p>
-<p>There is one program named PredPol, conducted by researchers from the University of California, Los Angeles (UCLA). They collected about 13 billion crime cases in 80 years and just used two variables, <code>when</code> and <code>where</code> to build models to predict where a crime could happen during each day, which is amazing and shows us the power of the environment influencing human’s choice. And the paper written by Dr. Irina Matijosaitiene revealed the effect of land uses on crime type classification and prediction.</p>
-<p>So, in this project, I’d like to use visualization at first to give an intuitive feel about the relationship between the occurrence of crime with <code>when</code> and <code>where</code>. And then I will build classification models for different crime types by using <code>when</code> and <code>where</code> as features input in my models.</p>
+<p>There is one program named PredPol, conducted by researchers from the University of California, Los Angeles (UCLA). They collected about 13 billion crime cases in 80 years and just used two variables, ‘when’ and ‘where’ to build models to predict where a crime could happen during each day, which is amazing and shows us the power of the environment influencing human’s choice. And the paper written by Dr. Irina Matijosaitiene revealed the effect of land uses on crime type classification and prediction.</p>
+<p>So, in this project, I’d like to use visualization at first to give an intuitive feel about the relationship between the occurrence of crime with ‘when’ and ‘where’. And then I will build classification models for different crime types by using ‘when’ and ‘where’ as features input in my models.</p>
 </div>
 <div id="materials-and-methods" class="section level1">
 <h1>Materials and methods</h1>
@@ -417,7 +417,7 @@ knitr::opts_chunk$set(cache=TRUE,cache.lazy = FALSE)  # cache the results for qu
 <h2>Download and clean all required data</h2>
 <div id="crime-dataset" class="section level3">
 <h3>Crime Dataset</h3>
-<p>This code chunk is used to download and clean the crime data. <br>in <code>nypd</code> dataset, the granularity of crime classification into multiple crime sub-types is very small for this project, for example, <code>assault</code> is classified as <code>assault 1</code>, <code>assault 2</code>, <code>assault peace officer</code>, etc. As the very small granularity of crimes is out of the research goal, and it does not focus on the smaller sub-types of crime (for instance, <code>larceny in chain stores</code>, <code>larceny in boutiques</code>, <code>larceny in clothing stores</code>, etc.), the project has aggregated crime sub-types into larger groups, such as <code>larceny</code>, <code>harassment</code>, <code>assault</code>, <code>burglary</code>, etc., using only crime data for 2015–2017. In crime analysis, especially crime in terms of urban planning, data from the recent 2-3 years is the most commonly used.</p>
+<p>This code chunk is used to download and clean the crime data. <br>in ‘nypd’ dataset, the granularity of crime classification into multiple crime sub-types is very small for this project, for example, ‘assault’ is classified as ‘assault 1’, ‘assault 2’, ‘assault peace officer’, etc. As the very small granularity of crimes is out of the research goal, and it does not focus on the smaller sub-types of crime (for instance, ‘larceny in chain stores’, ‘larceny in boutiques’, ‘larceny in clothing stores’, etc.), the project has aggregated crime sub-types into larger groups, such as ‘larceny’, ‘harassment’, ‘assault’, ‘burglary’, etc., using only crime data for 2015–2017. In crime analysis, especially crime in terms of urban planning, data from the recent 2-3 years is the most commonly used.</p>
 <pre class="r"><code>#read the raw data
 #It may takes a long time to run due to the large size of the raw dataset
 crime_file = &quot;nypd.csv&quot;
@@ -515,7 +515,7 @@ knitr::opts_chunk$set(cache = TRUE, warning = FALSE,
 </div>
 <div id="time-series-analysis" class="section level2">
 <h2>Time Series Analysis</h2>
-<p>This code chunk is to analyze time preference of top 3 commited crime types and the graphes are presented in <code>Result</code> part.</p>
+<p>This code chunk is to analyze time preference of top 3 commited crime types and the graphes are presented in ‘Result’ part.</p>
 <pre class="r"><code>top3 &lt;- data.frame(id=c(1:3),type = c(&quot;LARCENY&quot;,&quot;HARASSMENT&quot;,&quot;ASSAULT&quot;))
 
 #get the numbers of cases happened of each crime type in different time ranges
@@ -574,7 +574,7 @@ CL.validation &lt;- train2[-id2, ] </code></pre>
 </div>
 <div id="modeling" class="section level3">
 <h3>Modeling</h3>
-<p>This code chunk is to build the basic random forest model using default parameters.</p>
+<p>This code chunk is to build the basic random forest model using default parameters and shows the confusion matrix where the row and column names are “assault, harassment and larceny” from top to bottom and from right to light; and rows represent predicting values and columns represent true values.</p>
 <pre class="r"><code>set.seed(42)
 CL.train$CrimeTypeID &lt;- as.factor(CL.train$CrimeTypeID)
 CL.test$CrimeTypeID &lt;- as.factor(CL.test$CrimeTypeID)
@@ -603,35 +603,35 @@ CM_RF</code></pre>
 <tbody>
 <tr>
 <td style="text-align:right;">
-14910
+14436
 </td>
 <td style="text-align:right;">
-6292
+6496
 </td>
 <td style="text-align:right;">
-4135
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-3156
-</td>
-<td style="text-align:right;">
-3282
-</td>
-<td style="text-align:right;">
-1369
+4301
 </td>
 </tr>
 <tr>
 <td style="text-align:right;">
-2385
+3009
 </td>
 <td style="text-align:right;">
-2093
+3435
 </td>
 <td style="text-align:right;">
-2693
+1445
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2236
+</td>
+<td style="text-align:right;">
+2152
+</td>
+<td style="text-align:right;">
+2805
 </td>
 </tr>
 </tbody>
@@ -641,6 +641,7 @@ CM_RF</code></pre>
 <h3>Parameter Tuning</h3>
 <div id="mtry" class="section level4">
 <h4>Mtry</h4>
+<p>Mtry refers to max feature in random forest, which is the number of features to consider when looking for the best split. And this table shows the top3 most least errer values with their max features.</p>
 <pre class="r"><code>CL.validation$CrimeTypeID &lt;- as.factor(CL.validation$CrimeTypeID)
 n= length(names(CL.validation))
 errTable &lt;-c()
@@ -671,26 +672,26 @@ err
 <tbody>
 <tr>
 <td style="text-align:right;">
-17
+7
 </td>
 <td style="text-align:right;">
-0.5363081
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-27
-</td>
-<td style="text-align:right;">
-0.5366293
+0.5403955
 </td>
 </tr>
 <tr>
 <td style="text-align:right;">
-8
+5
 </td>
 <td style="text-align:right;">
-0.5369584
+0.5443437
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+0.5443852
 </td>
 </tr>
 </tbody>
@@ -698,7 +699,8 @@ err
 </div>
 <div id="num.tree" class="section level4">
 <h4>Num.tree</h4>
-<pre class="r"><code>  ntree_fit&lt;-randomForest(CrimeTypeID~.,CL.validation,mtry=17,ntree=1000)
+<p>Num.tree refers to the mumber of trees in the forest.</p>
+<pre class="r"><code>  ntree_fit&lt;-randomForest(CrimeTypeID~.,CL.validation,mtry=7,ntree=1000)
   plot(ntree_fit)</code></pre>
 <p><img src="index_files/figure-html/parameter_tuning2-1.png" width="672" /></p>
 </div>
@@ -709,7 +711,7 @@ err
 <h1>Results</h1>
 <div id="top-ten-most-committed-crime-types" class="section level2">
 <h2>Top ten most committed crime types</h2>
-<p>From 2015-2017, there are 342640 cases of crime occurred. The largest crime in Manhattan with 126413 registered cases by police, resulting in 36.89% of all crimes. Larceny is followed by harassment, having 38829 registered cases, resulting in 11.33% of all crimes. Assault was the third largest crime in Manhattan (after larceny and harassment) with 36333 registered cases, resulting in 10.6% of all crimes. <br>According to the criminal law and the Penal Code, <code>larceny</code> is ‘the unlawful taking and carrying away of someone else’s property without the consent of the owner and with the intent to permanently deprive the owner of the property’. <code>Criminal harassment</code> entails ‘intentionally targeting someone else with behavior that is meant to alarm, annoy, torment or terrorize them’.<code>Assault</code> is ‘a physical attack on someone’. Under New York Penal Law, <code>assault</code> is when a person <br>i) has an intent to cause physical injury to another person, <br>or ii) he recklessly causes physical injury to another person, <br>or iii) with criminal negligence, he causes physical injury to another person by means of a deadly weapon or a dangerous instrument.</p>
+<p>From 2015-2017, there are 342640 cases of crime occurred. The largest crime in Manhattan with 126413 registered cases by police, resulting in 36.89% of all crimes. Larceny is followed by harassment, having 38829 registered cases, resulting in 11.33% of all crimes. Assault was the third largest crime in Manhattan (after larceny and harassment) with 36333 registered cases, resulting in 10.6% of all crimes. <br>According to the criminal law and the Penal Code, ‘larceny’ is ‘the unlawful taking and carrying away of someone else’s property without the consent of the owner and with the intent to permanently deprive the owner of the property’. ‘Criminal harassment’ entails ‘intentionally targeting someone else with behavior that is meant to alarm, annoy, torment or terrorize them’.’Assault’ is ‘a physical attack on someone’. Under New York Penal Law, ‘assault’ is when a person <br>i) has an intent to cause physical injury to another person, <br>or ii) he recklessly causes physical injury to another person, <br>or iii) with criminal negligence, he causes physical injury to another person by means of a deadly weapon or a dangerous instrument.</p>
 <table class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
 <thead>
 <tr>
@@ -840,18 +842,20 @@ FORGERY,ETC.,UNCLASSIFIED-FELO
 </div>
 <div id="the-preference-on-time-of-top-three-committed-crime-types" class="section level2">
 <h2>The Preference on Time of Top Three Committed Crime Types</h2>
-<p><img src="index_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
+<p>We could see assault is more likely to happen in around 3pm. And after 3pm, the amount of assault occurred remains unchanged, but the amount of harassment occurred starts to decrease until 5am in next day. As for larceny, the most interesting part is from 12pm-5pm. After reaching the peak at 12pm, the amount starts to decrease until 1pm and increases between 2 to 3pm; and then it decreases in 4pm a little bit and increases until 5pm. After 5pm, the amount of larceny occurred drops rapidly until 5am in next day. And from 5am-6am, criminals decide to have a rest and the amount of the three crime types are least. <img src="index_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
 </div>
 <div id="the-preference-on-day-of-week-of-top-three-committed-crime-types" class="section level2">
 <h2>The Preference on Day of Week of Top Three Committed Crime Types</h2>
+<p>We could see the amount of harassment occurred changes slightly. And assault would be more likely to happen on weekends, while larceny tend to occur on weekends.</p>
 <p><img src="index_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
 </div>
 <div id="the-preference-on-land-uses-of-top-three-committed-crime-types" class="section level2">
 <h2>The Preference on Land Uses of Top Three Committed Crime Types</h2>
-<p><img src="index_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<p>We could see the three crime types have similar preferences on land uses. They are more likely to occur in mixed residential &amp; commercial buildings(land use code 3,LUC3), commercial &amp; office buildings(LUC1) and public facilities &amp; institutions(LUC9). But comparing with the amounts in different land use type, larceny tend to happen in former two land use types rather than the last one. <img src="index_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
 </div>
 <div id="importance-of-features" class="section level2">
 <h2>Importance of Features</h2>
+Even though we could see the preferences on time ranges, days of week and land uses vividly and clearly from the three figure above, there is another more quantitative way to achieve that. This code shows how to use <code>importance</code> to see how distinct one feature in the three crime types. And the table lists top 10 most distinct features.
 <table class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
 <thead>
 <tr>
@@ -869,21 +873,10 @@ pvalue
 <tbody>
 <tr>
 <td style="text-align:left;">
-Time_2
-</td>
-<td style="text-align:right;">
-140.94892
-</td>
-<td style="text-align:right;">
-0.0000000
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
 Time_3
 </td>
 <td style="text-align:right;">
-169.87307
+159.46629
 </td>
 <td style="text-align:right;">
 0.0000000
@@ -891,10 +884,10 @@ Time_3
 </tr>
 <tr>
 <td style="text-align:left;">
-Time_4
+Time_2
 </td>
 <td style="text-align:right;">
-165.86577
+147.32432
 </td>
 <td style="text-align:right;">
 0.0000000
@@ -905,7 +898,7 @@ Time_4
 Time_1
 </td>
 <td style="text-align:right;">
-105.18818
+89.91591
 </td>
 <td style="text-align:right;">
 0.0000000
@@ -913,32 +906,10 @@ Time_1
 </tr>
 <tr>
 <td style="text-align:left;">
-LandUseID_4
+Time_4
 </td>
 <td style="text-align:right;">
-53.73114
-</td>
-<td style="text-align:right;">
-0.0000000
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-LandUseID_2
-</td>
-<td style="text-align:right;">
-44.26096
-</td>
-<td style="text-align:right;">
-0.0000000
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-LandUseID_5
-</td>
-<td style="text-align:right;">
-323.29498
+154.63446
 </td>
 <td style="text-align:right;">
 0.0000000
@@ -949,7 +920,7 @@ LandUseID_5
 LandUseID_3
 </td>
 <td style="text-align:right;">
-102.43923
+96.33266
 </td>
 <td style="text-align:right;">
 0.0000000
@@ -957,13 +928,35 @@ LandUseID_3
 </tr>
 <tr>
 <td style="text-align:left;">
-LandUseID_8
+LandUseID_4
 </td>
 <td style="text-align:right;">
-27.71021
+52.12956
 </td>
 <td style="text-align:right;">
-0.0681818
+0.0000000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+LandUseID_2
+</td>
+<td style="text-align:right;">
+48.92194
+</td>
+<td style="text-align:right;">
+0.0000000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+LandUseID_5
+</td>
+<td style="text-align:right;">
+377.48088
+</td>
+<td style="text-align:right;">
+0.0000000
 </td>
 </tr>
 <tr>
@@ -971,10 +964,21 @@ LandUseID_8
 Time_12
 </td>
 <td style="text-align:right;">
-23.93541
+32.83325
 </td>
 <td style="text-align:right;">
-0.1590909
+0.0217391
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Time_23
+</td>
+<td style="text-align:right;">
+18.99888
+</td>
+<td style="text-align:right;">
+0.2173913
 </td>
 </tr>
 </tbody>
@@ -982,6 +986,7 @@ Time_12
 </div>
 <div id="random-forest-classification-model-1" class="section level2">
 <h2>Random Forest Classification Model</h2>
+<p>This code is to build the random forest model with parameters tuned. And the table shows the confusion matrix where the row and column names are “assault, harassment and larceny” from top to bottom and from right to light; and rows represent predicting values and columns represent true values.</p>
 <pre class="r"><code>RF.CL &lt;- ranger(CrimeTypeID ~ .,data=CL.train,num.trees = 500,mtry=7)
 pred.CL &lt;- predict(RF.CL, data = CL.test)
 
@@ -1007,35 +1012,35 @@ CM_RF1</code></pre>
 <tbody>
 <tr>
 <td style="text-align:right;">
-14739
+14319
 </td>
 <td style="text-align:right;">
-6087
+6356
 </td>
 <td style="text-align:right;">
-4511
-</td>
-</tr>
-<tr>
-<td style="text-align:right;">
-3109
-</td>
-<td style="text-align:right;">
-3140
-</td>
-<td style="text-align:right;">
-1558
+4558
 </td>
 </tr>
 <tr>
 <td style="text-align:right;">
-2298
+2982
 </td>
 <td style="text-align:right;">
-1964
+3331
 </td>
 <td style="text-align:right;">
-2909
+1576
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2188
+</td>
+<td style="text-align:right;">
+2028
+</td>
+<td style="text-align:right;">
+2977
 </td>
 </tr>
 </tbody>
@@ -1044,11 +1049,17 @@ CM_RF1</code></pre>
 </div>
 <div id="conclusions" class="section level1">
 <h1>Conclusions</h1>
-<p>What have you learned? Are there any broader implications?</p>
+<p>The final classification result was not good enough, there might two reasons. The first one is imbalanced classes. In fact, when removing all records of larceny and just classifying harassment and assault crime types, the result showed about 70% accuracy. So, for the further analysis, I’d like to find some other ways to reduce the effect of imbalanced classes</p>
+<p>The second reason is that there is much work about feature engineering. Firstly, as for exact time, this project just made time range based on hour and ignored the effect of minutes. And actually, the minutes ranges would be a good feature to the classification. Secondly, the pattern in different time range and different days of week of the three crime types are not distinct enough for classification, in other words, for the further analysis, I’d like to find some new features to represent the effect of time on different crime types. According to the figures abour the preferences, I’d like introduce some new features, such as 5am proximity, 3pm proximity and weekend proximity, etc.</p>
+<p>And I’d like to try some more efficient methods for the further analysis, such as other classification models and Bayesian optimization for parameters tuning.</p>
 </div>
 <div id="references" class="section level1">
 <h1>References</h1>
-<p><em><a href=http://www.predpol.com/how-predictivepolicing-works/>Predpol. How Predictive PolicingWorks. 2018.</a> </em>Matijosaitiene, I.; Zhao, P.; Jaume, S.; Gilkey Jr, J.W. Prediction of Hourly Effect of Land Use on Crime. ISPRS Int. J. Geo-Inf. 2019, 8, 16. *Almanie, Tahani; Mirza, Rsha.; Lor, Elizabeth. Crime Prediction Based On Crime Types And Using Spatial And Temporal Criminal Hotspots. IJDKP Int. J. Data Mining &amp; Knowledge Managemrnt Process. Vol.5, No.4, July 2015</p>
+<ol style="list-style-type: decimal">
+<li><a href=http://www.predpol.com/how-predictivepolicing-works/>Predpol. How Predictive PolicingWorks. 2018.</a><br></li>
+<li>Matijosaitiene, I.; Zhao, P.; Jaume, S.; Gilkey Jr, J.W. Prediction of Hourly Effect of Land Use on Crime. ISPRS Int. J. Geo-Inf. 2019, 8, 16.<br></li>
+<li>Almanie, Tahani; Mirza, Rsha.; Lor, Elizabeth. Crime Prediction Based On Crime Types And Using Spatial And Temporal Criminal Hotspots. IJDKP Int. J. Data Mining &amp; Knowledge Managemrnt Process. Vol.5, No.4, July 2015</li>
+</ol>
 </div>
 
 <!-- give the footer some space -->
