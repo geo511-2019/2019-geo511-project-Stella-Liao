@@ -5,16 +5,18 @@ subtitle: Random Forest Classification for Larceny, Harassment and Assault
 ---
 
 # Introduction
+
 Crime is a social issue, like a disease, which tends to spread as spatial clusters. We are always seeking for ways to minimize and prevent the occurrence of crime. Imagine if we could predict the probability of where and when crime occurs, our police could deploy the law enforcement to potentially dangerous areas more efficiently.  And usually, we may regard the occurrence of crime as random and use behavioral and social methods to study it. However, with the development of data analysis and technology, we could use some quantitative ways to analyze it.
 
 There is one program named PredPol, conducted by researchers from the University of California, Los Angeles (UCLA). They collected about 13 billion crime cases in 80 years and just used two variables, 'when' and 'where' to build models to predict where a crime could happen during each day, which is amazing and shows us the power of the environment influencing human's choice. And the paper written by Dr. Irina Matijosaitiene revealed the effect of land uses on crime type classification and prediction.
 
 So, in this project,  I'd like to use visualization at first to give an intuitive feel about the relationship between the occurrence of crime with 'when' and 'where'. And then I will build classification models for different crime types by using 'when' and 'where' as features input in my models.
 
-# Materials and methods 
-I will use the crime data from 2015-2017 in Manhattan, New York City to build classification models to classify the top three crime types occurred in this study area, which are larceny, harassment and assault. And the main factors input as features in the models are `time` and `location`, to be specific, `time` refers to exact time and day of week, and `location` refers to land use.
+# Materials and methods
 
-* Dataset Sources
+I will use the crime data from 2015-2017 in Manhattan, New York City to build classification models to classify the top three crime types occurred in this study area, which are larceny, harassment and assault. And the main factors input as features in the models are "time" and "location", to be specific, "time" refers to exact time and day of week, and "location" refers to land use.
+
+* Data Sources
   * <a href="https://data.cityofnewyork.us/Public-Safety/NYPD-Complaint-Data-Historic/qgea-i56i">NYPD Complaint Data</a>, a CSV file recording all crime occurance in New York City from 2006-2017
   * <a href="https://www1.nyc.gov/site/planning/data-maps/open-data/dwn-pluto-mappluto.page">Primary Land Use Tax Lot Output(PLUTO)</a>, a shapfile containing land cover information of New York City
 * Relationships between crime types with time and location
@@ -48,11 +50,14 @@ knitr::opts_chunk$set(cache=TRUE,cache.lazy = FALSE)  # cache the results for qu
 
 ## Download and clean all required data
 
-### Crime Dataset
+### Crime Data Set
 
 This code chunk is used to download and clean the crime data. 
-<br>in 'nypd' dataset, the granularity of crime classification into multiple crime sub-types is very small for this project, for example, 'assault' is
-classified as 'assault 1', 'assault 2', 'assault peace officer', etc. As the very small granularity of crimes is out of the research goal, and it does not focus on the smaller sub-types of crime (for instance, 'larceny in chain stores', 'larceny in boutiques', 'larceny in clothing stores', etc.), the project has aggregated crime sub-types into larger groups, such as 'larceny', 'harassment', 'assault', 'burglary', etc., using only crime data for 2015–2017. In crime analysis, especially crime in terms of urban planning, data from the recent 2-3 years is the most commonly used.
+
+In `nypd` dataset, the granularity of crime classification into multiple crime sub-types is very small for this project, for example, 'assault' is
+classified as 'assault 1', 'assault 2', 'assault peace officer', etc. As the very small granularity of crimes is out of the research goal, and it does not focus on the smaller sub-types of crime (for instance, 'larceny in chain stores', 'larceny in boutiques', 'larceny in clothing stores', etc.), the project has aggregated crime sub-types into larger groups, such as 'larceny', 'harassment', 'assault', 'burglary', etc., using only crime data for 2015–2017. 
+
+In crime analysis, especially crime in terms of urban planning, data from the recent 2-3 years is the most commonly used.
 
 ```{r crime_data_cleaned, message=FALSE, warning=FALSE, results='hide'}
 #read the raw data
@@ -102,10 +107,13 @@ knitr::opts_chunk$set(cache = TRUE, warning = FALSE,
 
 ```
 
-### Landuse Dataset
+### Land Use Data Set
 
 This code chunk is used to download and clean the land use data.
-<br>In `pluto` dataset, there are 84 variables, such as a unique ID, land use code and title (such as ‘One & Two Family Buildings’, ‘Multi-Family Walk-Up Buildings’, etc.), lot shape, area, tax code, address, as well as many other variables for each lot. And for this research, the interest is only in the geo-spatial and land use information for all lots in Manhattan. Therefore, the number of variables were reduced; leaving the following variables for further research: unique ID, land use ID and geo-spatial attributes. For displaying, Each land use ID is with the corresponding name, for instance 01—one & two family buildings, 02—multi-family walk-up buildings, etc. 
+
+In `pluto` dataset, there are 84 variables, such as a unique ID, land use code and title (such as ‘One & Two Family Buildings’, ‘Multi-Family Walk-Up Buildings’, etc.), lot shape, area, tax code, address, as well as many other variables for each lot. And for this research, the interest is only in the geo-spatial and land use information for all lots in Manhattan. Therefore, the number of variables were reduced; leaving the following variables for further research: unique ID, land use ID and geo-spatial attributes. 
+
+For displaying, each land use ID is with the corresponding name, for instance 01—one & two family buildings, 02—multi-family walk-up buildings, etc. 
 
 ```{r landuse_data_clean, message=FALSE, warning=FALSE, results='hide'}
 
@@ -162,7 +170,7 @@ top10_Crime_MAN <- crime_MAN %>%
 
 ## Time Series Analysis 
 
-This code chunk is to analyze time preference of top 3 commited crime types and the graphes are presented in 'Result' part.
+This code chunk is to analyze time preference of top 3 commited crime types and the graphes are presented in `Result` part.
 
 ```{r top_3_crime_types, message=FALSE, warning=FALSE, results='hide'}
 top3 <- data.frame(id=c(1:3),type = c("LARCENY","HARASSMENT","ASSAULT"))
@@ -205,7 +213,7 @@ ld_top3 <- top3_Crime_LandUse_MAN %>%
 
 ### Training, Validation and Test Data sets
 
-Before building models, one important thing is feature engineering. According to the visualization of the relation between crime types and days of week, there is not much siginificant correlation between them. So I removed `DayofWeek` and just used `Time` and `LandUseID` as features.And I used `dummy_cols()`function to make features into dummy variables. And then, I splited the data into three parts, training data for traning models, validation data for tuning parameters of models and test data for testing how models work well.
+Before building models, one important thing is feature engineering. And I used `dummy_cols()`function to make features into dummy variables, which is a good way to make qualitative data into quantitative data for quantifing. And then, I splited the data into three parts, training data for traning models, validation data for tuning parameters of models and test data for testing how models work well.
 
 ```{r data_process_classification, message=FALSE, warning=FALSE, results='hide'}
 CL <- top3_Crime_LandUse_MAN %>% 
@@ -252,7 +260,9 @@ CM_RF
 ### Parameter Tuning
 
 #### Mtry
-Mtry refers to max feature in random forest, which is the number of features to consider when looking for the best split. And this table shows the top3 most least errer values with their max features.
+
+Mtry refers to max feature in random forest, which is the number of features to consider when looking for the best split. And this table shows the top3 most least errer values with their max features. According to the table, `mtry=7` would be better for the model because its errer value is smallest.
+
 ```{r parameter_tuning, echo=TRUE}
 CL.validation$CrimeTypeID <- as.factor(CL.validation$CrimeTypeID)
 n= length(names(CL.validation))
@@ -272,7 +282,9 @@ kable(errTable[1:3,])%>%
   kable_styling(bootstrap_options = "striped", full_width = F)
 ```
 #### Num.tree
-Num.tree refers to the mumber of trees in the forest.
+
+Num.tree refers to the mumber of trees in the forest. 
+
 ```{r parameter_tuning2, echo=TRUE}
   ntree_fit<-randomForest(CrimeTypeID~.,CL.validation,mtry=7,ntree=1000)
   plot(ntree_fit)
@@ -284,7 +296,8 @@ Num.tree refers to the mumber of trees in the forest.
 
 From 2015-2017, there are 342640 cases of crime occurred. The largest crime in Manhattan with 126413 registered cases by police, resulting in 36.89% of all crimes. Larceny is followed by harassment, having 38829 registered cases, resulting in 11.33% of all crimes. Assault was the third largest crime in Manhattan (after larceny and harassment) with
 36333 registered cases, resulting in 10.6% of all crimes. 
-<br>According to the criminal law and the Penal Code, 'larceny' is 'the unlawful taking and carrying away of someone else’s property without the consent of the owner and with the intent to permanently deprive the owner of the property'. 'Criminal harassment' entails 'intentionally targeting someone else with behavior that is meant to alarm, annoy, torment or terrorize them’.'Assault' is 'a physical attack on someone'. Under New York Penal Law, 'assault' is when a person <br>i) has an intent to cause physical injury to another person, <br>or ii) he recklessly causes physical injury to another person, <br>or iii) with criminal negligence, he causes physical injury to another person by means of a deadly weapon or a dangerous instrument.
+
+According to the criminal law and the Penal Code, 'larceny' is 'the unlawful taking and carrying away of someone else’s property without the consent of the owner and with the intent to permanently deprive the owner of the property'. 'Criminal harassment' entails 'intentionally targeting someone else with behavior that is meant to alarm, annoy, torment or terrorize them’.'Assault' is 'a physical attack on someone'. Under New York Penal Law, 'assault' is when a person <br>i) has an intent to cause physical injury to another person, <br>ii) or he recklessly causes physical injury to another person, <br>iii) or with criminal negligence, he causes physical injury to another person by means of a deadly weapon or a dangerous instrument.
 
 ```{r echo=FALSE}
 kable(top10_Crime_MAN[1:10,],digits = c(0,2,2))%>% # remain 2 digits
@@ -293,7 +306,9 @@ kable(top10_Crime_MAN[1:10,],digits = c(0,2,2))%>% # remain 2 digits
 ```
 
 ## The Preference on Time of Top Three Committed Crime Types
+
 We could see assault is more likely to happen in around 3pm. And after 3pm, the amount of assault occurred remains unchanged, but the amount of harassment occurred starts to decrease until 5am in next day. As for larceny, the most interesting part is from 12pm-5pm. After reaching the peak at 12pm, the amount starts to decrease until 1pm and increases between 2 to 3pm; and then it decreases in 4pm a little bit and increases until 5pm. After 5pm, the amount of larceny occurred drops rapidly until 5am in next day. And from 5am-6am, criminals decide to have a rest and the amount of the three crime types are least.
+
 ```{r echo=FALSE}
 ggplot(time_top3,aes(x = TimeRange, y= amount,group=1))+
   geom_point(aes(color = CrimeType))+
@@ -305,6 +320,7 @@ ggplot(time_top3,aes(x = TimeRange, y= amount,group=1))+
 ```
 
 ## The Preference on Day of Week of Top Three Committed Crime Types
+
 We could see the amount of harassment occurred changes slightly. And assault would be more likely to happen on weekends, while larceny tend to occur on weekends. 
 
 ```{r echo=FALSE}
@@ -317,7 +333,9 @@ ggplot(dw_top3,aes(x = DayofWeek, y= amount, group = 1))+
 ```
 
 ## The Preference on Land Uses of Top Three Committed Crime Types
+
 We could see the three crime types have similar preferences on land uses. They are more likely to occur in mixed residential & commercial buildings(land use code 3,LUC3), commercial & office buildings(LUC1) and public facilities & institutions(LUC9). But comparing with the amounts in different land use type, larceny tend to happen in former two land use types rather than the last one. 
+
 ```{r echo=FALSE}
 ggplot(ld_top3,aes(x = LandUse, y= amount,group=1))+
   geom_point(aes(color = CrimeType))+
@@ -327,22 +345,10 @@ ggplot(ld_top3,aes(x = LandUse, y= amount,group=1))+
 
 ```
 
-
-## Importance of Features
-Even though we could see the preferences on time ranges, days of week and land uses vividly and clearly from the three figure above, there is another more quantitative way to achieve that. This code shows how to use `importance` to see how distinct one feature in the three crime types. And the table lists top 10 most distinct features.
-```{r importance of features, echo=FALSE, message=FALSE, warning=FALSE}
-## Janitza's p-values with corrected Gini importance
-rf.sim <- ranger(CrimeTypeID ~ ., CL.train, importance = "impurity_corrected")
-t<-importance_pvalues(rf.sim, method = "janitza")
-
-t2 <- data.frame(features = row.names(t),t)
-t3 <- t2%>%
-  arrange(pvalue)
-kable(t3[1:10,1:3])%>%
-  kable_styling(bootstrap_options = "striped", full_width = F)
-```
 ## Random Forest Classification Model
+
 This code is to build the random forest model with parameters tuned. And the table shows the confusion matrix where the row and column names are “assault, harassment and larceny” from top to bottom and from right to light; and rows represent predicting values and columns represent true values.
+
 ```{r echo=TRUE}
 RF.CL <- ranger(CrimeTypeID ~ .,data=CL.train,num.trees = 500,mtry=7)
 pred.CL <- predict(RF.CL, data = CL.test)
@@ -366,5 +372,7 @@ And I’d like to try some more efficient methods for the further analysis, such
 
 # References
 1. <a href=http://www.predpol.com/how-predictivepolicing-works/>Predpol. How Predictive PolicingWorks. 2018.</a><br>
-2. Matijosaitiene, I.; Zhao, P.; Jaume, S.; Gilkey Jr, J.W. Prediction of Hourly Effect of Land Use on Crime. ISPRS Int. J. Geo-Inf. 2019, 8, 16.<br>
-3. Almanie, Tahani; Mirza, Rsha.; Lor, Elizabeth. Crime Prediction Based On Crime Types And Using Spatial And Temporal Criminal Hotspots. IJDKP Int. J. Data Mining & Knowledge Managemrnt Process. Vol.5, No.4, July 2015
+2. <a href="https://data.cityofnewyork.us/Public-Safety/NYPD-Complaint-Data-Historic/qgea-i56i">NYPD Complaint Data</a><br>
+3. <a href="https://www1.nyc.gov/site/planning/data-maps/open-data/dwn-pluto-mappluto.page">Primary Land Use Tax Lot Output(PLUTO)</a><br>
+4. Matijosaitiene, I.; Zhao, P.; Jaume, S.; Gilkey Jr, J.W. Prediction of Hourly Effect of Land Use on Crime. ISPRS Int. J. Geo-Inf. 2019, 8, 16.<br>
+5. Almanie, Tahani; Mirza, Rsha.; Lor, Elizabeth. Crime Prediction Based On Crime Types And Using Spatial And Temporal Criminal Hotspots. IJDKP Int. J. Data Mining & Knowledge Managemrnt Process. Vol.5, No.4, July 2015
