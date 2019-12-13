@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Stella Liao" />
+
+
+<title>Crime Prediction in Manhattan, NYC</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/simplex.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<script src="site_libs/kePrint-0.0.1/kePrint.js"></script>
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+<link rel="stylesheet" href="styles.css" type="text/css" />
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 41px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 46px;
+  margin-top: -46px;
+}
+.section h2 {
+  padding-top: 46px;
+  margin-top: -46px;
+}
+.section h3 {
+  padding-top: 46px;
+  margin-top: -46px;
+}
+.section h4 {
+  padding-top: 46px;
+  margin-top: -46px;
+}
+.section h5 {
+  padding-top: 46px;
+  margin-top: -46px;
+}
+.section h6 {
+  padding-top: 46px;
+  margin-top: -46px;
+}
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #ffffff;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-inverse  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">R Data Science Final Project</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Crime Prediction in Manhattan, NYC</h1>
+<h3 class="subtitle">Random Forest Classification for Larceny, Harassment and Assault</h3>
+<h4 class="author">Stella Liao</h4>
+
+</div>
+
+
+<div id="introduction" class="section level1">
+<h1>Introduction</h1>
+<p>Crime is a social issue, like a disease, which tends to spread as spatial clusters. We are always seeking for ways to minimize and prevent the occurrence of crime. Imagine if we could predict the probability of where and when crime occurs, our police could deploy the law enforcement to potentially dangerous areas more efficiently. And usually, we may regard the occurrence of crime as random and use behavioral and social methods to study it. However, with the development of data analysis and technology, we could use some quantitative ways to analyze it.</p>
+<p>There is one program named PredPol, conducted by researchers from the University of California, Los Angeles (UCLA). They collected about 13 billion crime cases in 80 years and just used two variables, ‘when’ and ‘where’ to build models to predict where a crime could happen during each day, which is amazing and shows us the power of the environment influencing human’s choice. And the paper written by Dr. Irina Matijosaitiene revealed the effect of land uses on crime type classification and prediction.</p>
+<p>So, in this project, I’d like to use visualization at first to give an intuitive feel about the relationship between the occurrence of crime with ‘when’ and ‘where’. And then I will build classification models for different crime types by using ‘when’ and ‘where’ as features input in my models.</p>
+</div>
+<div id="materials-and-methods" class="section level1">
+<h1>Materials and methods</h1>
+<p>I will use the crime data from 2015-2017 in Manhattan, New York City to build classification models to classify the top three crime types occurred in this study area, which are larceny, harassment and assault. And the main factors input as features in the models are “time” and “location”, to be specific, “time” refers to exact time and day of week, and “location” refers to land use.</p>
+<ul>
+<li>Data Sources
+<ul>
+<li><a href="https://data.cityofnewyork.us/Public-Safety/NYPD-Complaint-Data-Historic/qgea-i56i">NYPD Complaint Data</a>, a CSV file recording all crime occurance in New York City from 2006-2017</li>
+<li><a href="https://www1.nyc.gov/site/planning/data-maps/open-data/dwn-pluto-mappluto.page">Primary Land Use Tax Lot Output(PLUTO)</a>, a shapfile containing land cover information of New York City</li>
+</ul></li>
+<li>Relationships between crime types with time and location
+<ul>
+<li>Time Series Analysis</li>
+<li>Effects of Land Uses on Crime Types</li>
+</ul></li>
+<li>Random Forest Classification Model
+<ul>
+<li>Training, validation and test data sets</li>
+<li>Feature Engineering</li>
+<li>Modeling</li>
+<li>Parameter Tuning</li>
+<li>Evaluation</li>
+</ul></li>
+</ul>
+<div id="load-all-required-packages" class="section level2">
+<h2>Load all required packages</h2>
+<pre class="r"><code>library(dplyr)
+library(stringr)
+library(tidyr)
+library(readr)
+library(lubridate)
+library(sp)
+library(sf)
+library(ggplot2)
+library(knitr)
+library(kableExtra) #for table styling
+library(fastDummies) #get the dummy variables
+library(ranger)#random forest model
+library(randomForest) #random forest model
+
+knitr::opts_chunk$set(cache=TRUE,cache.lazy = FALSE)  # cache the results for quick compiling</code></pre>
+</div>
+<div id="download-and-clean-all-required-data" class="section level2">
+<h2>Download and clean all required data</h2>
+<div id="crime-data-set" class="section level3">
+<h3>Crime Data Set</h3>
+<p>This code chunk is used to download and clean the crime data.</p>
+<p>In <code>nypd</code> dataset, the granularity of crime classification into multiple crime sub-types is very small for this project, for example, ‘assault’ is classified as ‘assault 1’, ‘assault 2’, ‘assault peace officer’, etc. As the very small granularity of crimes is out of the research goal, and it does not focus on the smaller sub-types of crime (for instance, ‘larceny in chain stores’, ‘larceny in boutiques’, ‘larceny in clothing stores’, etc.), the project has aggregated crime sub-types into larger groups, such as ‘larceny’, ‘harassment’, ‘assault’, ‘burglary’, etc., using only crime data for 2015–2017.</p>
+<p>In crime analysis, especially crime in terms of urban planning, data from the recent 2-3 years is the most commonly used.</p>
+<pre class="r"><code>#read the raw data
+#It may takes a long time to run due to the large size of the raw dataset
+crime_file = &quot;nypd.csv&quot;
+crime_url = &quot;https://data.cityofnewyork.us/api/views/qgea-i56i/rows.csv?accessType=DOWNLOAD&quot;
+download.file(crime_url,crime_file)
+nypd &lt;-read.csv(crime_file,stringsAsFactors = FALSE)
+
+#clean and tidy crime data
+#classify exact time into different time ranges
+time_range&lt;- data.frame(id=c(0:24),
+                        range= c(&quot;00-01&quot;,&quot;01-02&quot;,&quot;02-03&quot;,&quot;03-04&quot;,&quot;04-05&quot;,&quot;05-06&quot;,&quot;06-07&quot;,&quot;07-08&quot;,
+                                  &quot;08-09&quot;,&quot;09-10&quot;,&quot;10-11&quot;,&quot;11-12&quot;,&quot;12-13&quot;,&quot;13-14&quot;,&quot;14-15&quot;,&quot;15-16&quot;,
+                                  &quot;16-17&quot;,&quot;17-18&quot;,&quot;18-19&quot;,&quot;19-20&quot;,&quot;20-21&quot;,&quot;21-22&quot;,&quot;22-23&quot;,&quot;23-24&quot;,&quot;00-01&quot;))
+
+
+#exract the relative information into crime_MAN dataframe
+crime_MAN &lt;- nypd %&gt;%
+  drop_na(Longitude)%&gt;% #remove NA value
+  drop_na(Latitude)%&gt;%
+  drop_na(CMPLNT_FR_DT)%&gt;%
+  drop_na(CMPLNT_FR_TM)%&gt;%
+  st_as_sf(coords=c(&quot;Longitude&quot;,&quot;Latitude&quot;),crs = 4326)%&gt;% #add geo-referenced information
+  rename( #rename some column names to operate easily
+    CrimeID = CMPLNT_NUM,
+    CrimeType = PD_DESC)%&gt;%
+  mutate(Date = mdy(CMPLNT_FR_DT),#change data column into DATE type
+         DayofWeek = wday(Date,label = TRUE,abbr = FALSE),
+         Day=wday(Date), #get the information about day of week
+         Time = hour(hms(CMPLNT_FR_TM)))%&gt;% #get the hour of time
+  mutate(TimeRange = time_range$range[match(.$Time, time_range$id)])%&gt;% #add a new column storing time ranges
+  filter(BORO_NM == &quot;MANHATTAN&quot;&amp; #limit the study area
+           Date &gt;= ymd(20150101)&amp; #limit the study periods
+           Date &lt;= ymd(20171231))%&gt;%
+  select(&quot;CrimeType&quot;,&quot;DayofWeek&quot;,&quot;TimeRange&quot;,&quot;Time&quot;,&quot;Day&quot;) #select the relative columns
+
+#combine sub-classes of crime types into big classes
+crime_type &lt;- c(&quot;LARCENY&quot;,&quot;ASSAULT&quot;,&quot;HARASSMENT,SUBD&quot;,&quot;THEFT&quot;,&quot;ADMINISTRATIVE CODE&quot;,&quot;HOMICIDE&quot;,&quot;INTOXICATED&quot;,&quot;LOITERING&quot;,&quot;OTHERSTATE LAW&quot;,&quot;OFFENSES&quot;,&quot;CRIMINAL MISCHIEF&quot;)
+
+for(i in 1:length(crime_type)){
+  crime_MAN$CrimeType[grep(crime_type[i],crime_MAN$CrimeType)] &lt;- crime_type[i]
+  }
+crime_MAN$CrimeType[crime_MAN$CrimeType == &quot;HARASSMENT,SUBD&quot;] &lt;- &quot;HARASSMENT&quot;
+knitr::opts_chunk$set(cache = TRUE, warning = FALSE, 
+                      message = FALSE, cache.lazy = FALSE)</code></pre>
+</div>
+<div id="land-use-data-set" class="section level3">
+<h3>Land Use Data Set</h3>
+<p>This code chunk is used to download and clean the land use data.</p>
+<p>In <code>pluto</code> dataset, there are 84 variables, such as a unique ID, land use code and title (such as ‘One &amp; Two Family Buildings’, ‘Multi-Family Walk-Up Buildings’, etc.), lot shape, area, tax code, address, as well as many other variables for each lot. And for this research, the interest is only in the geo-spatial and land use information for all lots in Manhattan. Therefore, the number of variables were reduced; leaving the following variables for further research: unique ID, land use ID and geo-spatial attributes.</p>
+<p>For displaying, each land use ID is with the corresponding name, for instance 01—one &amp; two family buildings, 02—multi-family walk-up buildings, etc.</p>
+<pre class="r"><code>#please download and unzip the landuse dataset if you do not have
+landUse_url = &quot;https://www1.nyc.gov/assets/planning/download/zip/data-maps/open-data/nyc_mappluto_19v1_shp.zip&quot;
+landUse_file = &quot;pluto.zip&quot;
+download.file(landUse_url,destfile = landUse_file)
+unzip(landUse_file, exdir = &quot;pluto&quot;)
+
+#read the raw data
+mapluto &lt;-st_read(&quot;pluto/MapPLUTO.shp&quot;)
+
+#to add the name of each landuse type
+landUse_type &lt;- data.frame(id=c(1:11),type = c(&quot;One &amp; Two Family Buildings&quot;,
+                                               &quot;Multi-Family Walk-Up Buildings&quot;,
+                                               &quot;Multi-Family Elevator Buildings&quot;, 
+                                               &quot;Mixed Residential &amp; Commercial Buildings&quot;,
+                                               &quot;Commercial &amp; Office Buildings&quot;,
+                                               &quot;Industrial &amp; Manufacturing&quot;,
+                                               &quot;Transportation &amp; Utility&quot;,
+                                               &quot;Public Facilities &amp; Institutions&quot;,
+                                               &quot;Open Space and Outdoor Recreation&quot;,
+                                               &quot;Parking Facilities&quot;,
+                                               &quot;Vacant Land&quot;))
+#exract the relative information
+landUse_MAN &lt;- mapluto %&gt;%
+  st_transform(st_crs(crime_MAN))%&gt;% #make sure the same coordinate system
+  drop_na(LandUse)%&gt;%
+  filter(Borough == &quot;MN&quot;)%&gt;% #limit the study area
+  select(&quot;Lot&quot;,&quot;LandUse&quot;)%&gt;% 
+  rename(LandUseID = LandUse)%&gt;% #because the raw dataset just stored landuse id in &quot;LandUse&quot; Column
+  mutate(LandUseID = as.integer(LandUseID))%&gt;%
+  mutate(LandUse = landUse_type$type[match(.$LandUseID, landUse_type$id)]) #add a new column storing land cover names
+
+knitr::opts_chunk$set(cache = TRUE, warning = FALSE, 
+                      message = FALSE, cache.lazy = FALSE)</code></pre>
+</div>
+</div>
+<div id="which-crime-types-are-most-frequently-happen" class="section level2">
+<h2>Which Crime types are most frequently happen?</h2>
+<p>This code chunk is used to get the table describing the top 10 occurred crime types, which is presented in <code>Result</code> part.</p>
+<pre class="r"><code>top10_Crime_MAN &lt;- crime_MAN %&gt;% 
+  group_by(CrimeType)%&gt;%
+  summarize(Amount = n())%&gt;% #calculate the number of each crime type occurred totally 
+  mutate(Percent = Amount/sum(Amount)*100)%&gt;% #calculate the percent of each crime type
+  arrange(desc(Amount))%&gt;% #sort ranging from the highest number to lowest one
+  rename(&quot;Percent(%)&quot;=Percent,
+         &quot;Amount(Cases)&quot;=Amount)%&gt;%# rename for displaying
+  st_set_geometry(NULL) #no need to have geometry information</code></pre>
+</div>
+<div id="time-series-analysis" class="section level2">
+<h2>Time Series Analysis</h2>
+<p>This code chunk is to analyze time preference of top 3 commited crime types and the graphes are presented in <code>Result</code> part.</p>
+<pre class="r"><code>top3 &lt;- data.frame(id=c(1:3),type = c(&quot;LARCENY&quot;,&quot;HARASSMENT&quot;,&quot;ASSAULT&quot;))
+
+#get the numbers of cases happened of each crime type in different time ranges
+time_top3 &lt;- crime_MAN %&gt;%
+  st_set_geometry(NULL)%&gt;%
+  filter(CrimeType %in% top3$type)%&gt;%
+  group_by(TimeRange,CrimeType)%&gt;% 
+  summarize(amount=n())
+
+#get the numbers of cases happened of each crime type in different days of week
+dw_top3 &lt;- crime_MAN %&gt;%
+  st_set_geometry(NULL)%&gt;%
+  filter(CrimeType %in% top3$type)%&gt;%
+  drop_na(DayofWeek)%&gt;%
+  group_by(DayofWeek,CrimeType)%&gt;% 
+  summarize(amount=n())</code></pre>
+</div>
+<div id="effects-of-land-uses-on-crime-types" class="section level2">
+<h2>Effects of Land Uses on Crime Types</h2>
+<p>This code chunk is to analyze land uses preference of top 3 commited crime types and the graphes are presented in <code>Result</code> part.</p>
+<pre class="r"><code>#add landuse information into the crime dataset
+top3_Crime_LandUse_MAN &lt;- crime_MAN %&gt;%
+  filter(CrimeType %in% top3$type)%&gt;%
+  st_join(landUse_MAN,join = st_nearest_feature,left = FALSE)
+top3_Crime_LandUse_MAN$CrimeTypeID = top3$id[match(top3_Crime_LandUse_MAN$CrimeType, top3$type)]
+
+#get the numbers of cases happened of each crime type on different land covers
+ld_top3 &lt;- top3_Crime_LandUse_MAN %&gt;%
+  group_by(CrimeType,LandUse)%&gt;%
+  summarize(amount=n())</code></pre>
+</div>
+<div id="random-forest-classification-model" class="section level2">
+<h2>Random Forest Classification Model</h2>
+<div id="training-validation-and-test-data-sets" class="section level3">
+<h3>Training, Validation and Test Data sets</h3>
+<p>Before building models, one important thing is feature engineering. And I used <code>dummy_cols()</code>function to make features into dummy variables, which is a good way to make qualitative data into quantitative data for quantifing. And then, I splited the data into three parts, training data for traning models, validation data for tuning parameters of models and test data for testing how models work well.</p>
+<pre class="r"><code>CL &lt;- top3_Crime_LandUse_MAN %&gt;% 
+  st_set_geometry(NULL)%&gt;%
+  select(&quot;CrimeTypeID&quot;,&quot;Time&quot;,&quot;LandUseID&quot;)
+
+CL.dummy &lt;- dummy_cols(CL,select_columns = c(&quot;Time&quot;,&quot;LandUseID&quot;))%&gt;%
+  subset(select = -c(Time,LandUseID))
+
+#split into train and test data
+set.seed(42)
+id &lt;- sample(nrow(CL.dummy), 0.8 * nrow(CL.dummy))
+train &lt;- CL.dummy[id, ]
+CL.test &lt;- CL.dummy[-id, ]
+
+#split train data into train data and validation data
+set.seed(42)
+train2 &lt;- train[-sample( which(train$CrimeTypeID == 1 ),67000), ]
+id2 &lt;- sample(nrow(train2), 0.8 * nrow(train2))
+CL.train &lt;- train2[id2, ]
+CL.validation &lt;- train2[-id2, ] </code></pre>
+</div>
+<div id="modeling" class="section level3">
+<h3>Modeling</h3>
+<p>This code chunk is to build the basic random forest model using default parameters and shows the confusion matrix where the row and column names are “assault, harassment and larceny” from top to bottom and from right to light; and rows represent predicting values and columns represent true values.</p>
+<pre class="r"><code>set.seed(42)
+CL.train$CrimeTypeID &lt;- as.factor(CL.train$CrimeTypeID)
+CL.test$CrimeTypeID &lt;- as.factor(CL.test$CrimeTypeID)
+rf_model &lt;- ranger(CrimeTypeID ~ .,data=CL.train)
+pred &lt;- predict(rf_model, data = CL.test)
+
+CM_RF &lt;- table(CL.test$CrimeTypeID,pred$predictions)%&gt;%
+  kable()%&gt;%
+  kable_styling(bootstrap_options = &quot;striped&quot;, full_width = F)
+
+CM_RF</code></pre>
+<table class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:right;">
+1
+</th>
+<th style="text-align:right;">
+2
+</th>
+<th style="text-align:right;">
+3
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+14436
+</td>
+<td style="text-align:right;">
+6496
+</td>
+<td style="text-align:right;">
+4301
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+3009
+</td>
+<td style="text-align:right;">
+3435
+</td>
+<td style="text-align:right;">
+1445
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2236
+</td>
+<td style="text-align:right;">
+2152
+</td>
+<td style="text-align:right;">
+2805
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="parameter-tuning" class="section level3">
+<h3>Parameter Tuning</h3>
+<div id="mtry" class="section level4">
+<h4>Mtry</h4>
+<p>Mtry refers to max feature in random forest, which is the number of features to consider when looking for the best split. And this table shows the top3 most least errer values with their max features. According to the table, <code>mtry=7</code> would be better for the model because its errer value is smallest.</p>
+<pre class="r"><code>CL.validation$CrimeTypeID &lt;- as.factor(CL.validation$CrimeTypeID)
+n= length(names(CL.validation))
+errTable &lt;-c()
+
+for (i in 1:(n-1)){
+  mtry_fit &lt;- randomForest(CrimeTypeID~.,CL.validation,mtry=i)
+  err = mean(mtry_fit$err.rate)
+  errTable &lt;- rbind(errTable,c(i,err))
+}
+
+colnames(errTable) &lt;- c(&quot;mtry&quot;,&quot;err&quot;)
+errTable2 &lt;- as.data.frame(errTable)
+errTable &lt;- errTable2%&gt;% arrange(err)
+
+kable(errTable[1:3,])%&gt;%
+  kable_styling(bootstrap_options = &quot;striped&quot;, full_width = F)</code></pre>
+<table class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:right;">
+mtry
+</th>
+<th style="text-align:right;">
+err
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+0.5403955
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+0.5443437
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+0.5443852
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="num.tree" class="section level4">
+<h4>Num.tree</h4>
+<p>Num.tree refers to the mumber of trees in the forest.</p>
+<pre class="r"><code>  ntree_fit&lt;-randomForest(CrimeTypeID~.,CL.validation,mtry=7,ntree=1000)
+  plot(ntree_fit)</code></pre>
+<p><img src="index_files/figure-html/parameter_tuning2-1.png" width="672" /></p>
+</div>
+</div>
+</div>
+</div>
+<div id="results" class="section level1">
+<h1>Results</h1>
+<div id="top-ten-most-committed-crime-types" class="section level2">
+<h2>Top ten most committed crime types</h2>
+<p>From 2015-2017, there are 342640 cases of crime occurred. The largest crime in Manhattan with 126413 registered cases by police, resulting in 36.89% of all crimes. Larceny is followed by harassment, having 38829 registered cases, resulting in 11.33% of all crimes. Assault was the third largest crime in Manhattan (after larceny and harassment) with 36333 registered cases, resulting in 10.6% of all crimes.</p>
+<p>According to the criminal law and the Penal Code, ‘larceny’ is ‘the unlawful taking and carrying away of someone else’s property without the consent of the owner and with the intent to permanently deprive the owner of the property’. ‘Criminal harassment’ entails ‘intentionally targeting someone else with behavior that is meant to alarm, annoy, torment or terrorize them’.’Assault’ is ‘a physical attack on someone’. Under New York Penal Law, ‘assault’ is when a person <br>i) has an intent to cause physical injury to another person, <br>ii) or he recklessly causes physical injury to another person, <br>iii) or with criminal negligence, he causes physical injury to another person by means of a deadly weapon or a dangerous instrument.</p>
+<table class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+CrimeType
+</th>
+<th style="text-align:right;">
+Amount(Cases)
+</th>
+<th style="text-align:right;">
+Percent(%)
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;font-weight: bold;color: white !important;background-color: #D7261E !important;">
+LARCENY
+</td>
+<td style="text-align:right;font-weight: bold;color: white !important;background-color: #D7261E !important;">
+126413
+</td>
+<td style="text-align:right;font-weight: bold;color: white !important;background-color: #D7261E !important;">
+36.89
+</td>
+</tr>
+<tr>
+<td style="text-align:left;font-weight: bold;color: white !important;background-color: #D7261E !important;">
+HARASSMENT
+</td>
+<td style="text-align:right;font-weight: bold;color: white !important;background-color: #D7261E !important;">
+38829
+</td>
+<td style="text-align:right;font-weight: bold;color: white !important;background-color: #D7261E !important;">
+11.33
+</td>
+</tr>
+<tr>
+<td style="text-align:left;font-weight: bold;color: white !important;background-color: #D7261E !important;">
+ASSAULT
+</td>
+<td style="text-align:right;font-weight: bold;color: white !important;background-color: #D7261E !important;">
+36333
+</td>
+<td style="text-align:right;font-weight: bold;color: white !important;background-color: #D7261E !important;">
+10.60
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+CRIMINAL MISCHIEF
+</td>
+<td style="text-align:right;">
+17936
+</td>
+<td style="text-align:right;">
+5.23
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+AGGRAVATED HARASSMENT 2
+</td>
+<td style="text-align:right;">
+12368
+</td>
+<td style="text-align:right;">
+3.61
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+MARIJUANA, POSSESSION 4 &amp; 5
+</td>
+<td style="text-align:right;">
+9015
+</td>
+<td style="text-align:right;">
+2.63
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+CONTROLLED SUBSTANCE, POSSESSI
+</td>
+<td style="text-align:right;">
+6618
+</td>
+<td style="text-align:right;">
+1.93
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+MISCHIEF, CRIMINAL 4, OF MOTOR
+</td>
+<td style="text-align:right;">
+6315
+</td>
+<td style="text-align:right;">
+1.84
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+FRAUD,UNCLASSIFIED-FELONY
+</td>
+<td style="text-align:right;">
+4268
+</td>
+<td style="text-align:right;">
+1.25
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+FORGERY,ETC.,UNCLASSIFIED-FELO
+</td>
+<td style="text-align:right;">
+4013
+</td>
+<td style="text-align:right;">
+1.17
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="the-preference-on-time-of-top-three-committed-crime-types" class="section level2">
+<h2>The Preference on Time of Top Three Committed Crime Types</h2>
+<p>We could see assault is more likely to happen in around 3pm. And after 3pm, the amount of assault occurred remains unchanged, but the amount of harassment occurred starts to decrease until 5am in next day. As for larceny, the most interesting part is from 12pm-5pm. After reaching the peak at 12pm, the amount starts to decrease until 1pm and increases between 2 to 3pm; and then it decreases in 4pm a little bit and increases until 5pm. After 5pm, the amount of larceny occurred drops rapidly until 5am in next day. And from 5am-6am, criminals decide to have a rest and the amount of the three crime types are least.</p>
+<p><img src="index_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
+</div>
+<div id="the-preference-on-day-of-week-of-top-three-committed-crime-types" class="section level2">
+<h2>The Preference on Day of Week of Top Three Committed Crime Types</h2>
+<p>We could see the amount of harassment occurred changes slightly. And assault would be more likely to happen on weekends, while larceny tend to occur on weekends.</p>
+<p><img src="index_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+</div>
+<div id="the-preference-on-land-uses-of-top-three-committed-crime-types" class="section level2">
+<h2>The Preference on Land Uses of Top Three Committed Crime Types</h2>
+<p>We could see the three crime types have similar preferences on land uses. They are more likely to occur in mixed residential &amp; commercial buildings(land use code 3,LUC3), commercial &amp; office buildings(LUC1) and public facilities &amp; institutions(LUC9). But comparing with the amounts in different land use type, larceny tend to happen in former two land use types rather than the last one.</p>
+<p><img src="index_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+</div>
+<div id="random-forest-classification-model-1" class="section level2">
+<h2>Random Forest Classification Model</h2>
+<p>This code is to build the random forest model with parameters tuned. And the table shows the confusion matrix where the row and column names are “assault, harassment and larceny” from top to bottom and from right to light; and rows represent predicting values and columns represent true values.</p>
+<pre class="r"><code>RF.CL &lt;- ranger(CrimeTypeID ~ .,data=CL.train,num.trees = 500,mtry=7)
+pred.CL &lt;- predict(RF.CL, data = CL.test)
+
+CM_RF1 &lt;- table(CL.test$CrimeTypeID,pred.CL$predictions)%&gt;%
+  kable()%&gt;%
+  kable_styling(bootstrap_options = &quot;striped&quot;, full_width = F)
+
+CM_RF1</code></pre>
+<table class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:right;">
+1
+</th>
+<th style="text-align:right;">
+2
+</th>
+<th style="text-align:right;">
+3
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+14319
+</td>
+<td style="text-align:right;">
+6356
+</td>
+<td style="text-align:right;">
+4558
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2982
+</td>
+<td style="text-align:right;">
+3331
+</td>
+<td style="text-align:right;">
+1576
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2188
+</td>
+<td style="text-align:right;">
+2028
+</td>
+<td style="text-align:right;">
+2977
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="conclusions" class="section level1">
+<h1>Conclusions</h1>
+<p>The final classification result was not good enough, there might two reasons. The first one is imbalanced classes. In fact, when removing all records of larceny and just classifying harassment and assault crime types, the result showed about 70% accuracy. So, for the further analysis, I’d like to find some other ways to reduce the effect of imbalanced classes</p>
+<p>The second reason is that there is much work about feature engineering. Firstly, as for exact time, this project just made time range based on hour and ignored the effect of minutes. And actually, the minutes ranges would be a good feature to the classification. Secondly, the pattern in different time range and different days of week of the three crime types are not distinct enough for classification, in other words, for the further analysis, I’d like to find some new features to represent the effect of time on different crime types. According to the figures abour the preferences, I’d like introduce some new features, such as 5am proximity, 3pm proximity and weekend proximity, etc.</p>
+<p>And I’d like to try some more efficient methods for the further analysis, such as other classification models and Bayesian optimization for parameters tuning.</p>
+</div>
+<div id="references" class="section level1">
+<h1>References</h1>
+<ol style="list-style-type: decimal">
+<li><a href=http://www.predpol.com/how-predictivepolicing-works/>Predpol. How Predictive PolicingWorks. 2018.</a><br></li>
+<li><a href="https://data.cityofnewyork.us/Public-Safety/NYPD-Complaint-Data-Historic/qgea-i56i">NYPD Complaint Data</a><br></li>
+<li><a href="https://www1.nyc.gov/site/planning/data-maps/open-data/dwn-pluto-mappluto.page">Primary Land Use Tax Lot Output(PLUTO)</a><br></li>
+<li>Matijosaitiene, I.; Zhao, P.; Jaume, S.; Gilkey Jr, J.W. Prediction of Hourly Effect of Land Use on Crime. ISPRS Int. J. Geo-Inf. 2019, 8, 16.<br></li>
+<li>Almanie, Tahani; Mirza, Rsha.; Lor, Elizabeth. Crime Prediction Based On Crime Types And Using Spatial And Temporal Criminal Hotspots. IJDKP Int. J. Data Mining &amp; Knowledge Managemrnt Process. Vol.5, No.4, July 2015</li>
+</ol>
+</div>
+
+<!-- give the footer some space -->
+<br/>
+<br/>
+
+<footer id="site-footer">
+  <div id="footer1">
+  This website is a project for Adam Wilson's <a href="https://wilsonlab.io/GEO511"><i> Spatial Data Science (GEO511) </i></a>Course at the University at Buffalo
+  </div>
+  <div id="footer2">
+  <a rel="license" property="http://creativecommons.org/ns#license"
+  href="http://creativecommons.org/licenses/by/4.0/" ><img src="img/cc-by.svg" alt="cc-by"/></a> 
+  </div>
+</footer>
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open')
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+
+</body>
+</html>
